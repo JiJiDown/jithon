@@ -21,10 +21,13 @@ os.makedirs(local_dir+'/temp',exist_ok=True)#创建临时文件夹
 
 
 #浏览器请求函数
-def get(url):
+def get(url: str) -> dict:
+    """
+    请求数据
+    """
     try:
         #cj = {i.split("=")[0]:i.split("=")[1] for i in cookies.split(";")}
-        response = brower.get(url=url,headers={
+        response:dict = brower.get(url=url,headers={
             "user-agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.93 Safari/537.36",
             "accept": "application/json, text/plain, */*",
             "accept-encoding": "gzip, deflate, br",
@@ -38,7 +41,7 @@ def get(url):
         get(url)
 
 #浏览器发送函数
-def post(url,json):
+def post(url:str,json:str) -> dict:
     response = brower.post(url=url,json=json,headers={
         "user-agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.93 Safari/537.36",
         "accept": "application/json, text/plain, */*",
@@ -53,7 +56,7 @@ def get_user_info() -> dict:
     """
     获取用户登陆状态
     """
-    data = get(base_url+'/bili/user/get_user_info')
+    data:dict = get(base_url+'/bili/user/get_user_info')
     if data['message'] == "no login":
         return {'code':False}#返回状态
     user_data = data['data']
@@ -63,4 +66,4 @@ def get_user_info() -> dict:
     face:str = user_data['face']#用户头像
     vip_status:bool = user_data['vip_status']#大会员登录状态
     vip_label_text:str = user_data['vip_label_text']#大会员状态（年度大会员等）
-    return {'code':True,'mid':mid,'is_login':is_login,'uname':uname,'face':face,'vip_status':vip_status,'vip_label_text'}
+    return {'code':True,'mid':mid,'is_login':is_login,'uname':uname,'face':face,'vip_status':vip_status,'vip_label_text':vip_label_text}
