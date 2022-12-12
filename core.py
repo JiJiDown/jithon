@@ -165,9 +165,10 @@ def ad() -> dict:
     """
     data = get(base_url+"/jijidown/ad")
     return data['data']
-# video info层
 
 
+################################################################### video info层
+#获取视频信息
 def info(type: int, id: str) -> dict:
     """
     获取不同类型的视频信息
@@ -207,9 +208,9 @@ def info(type: int, id: str) -> dict:
         }
 }
     """
-    data = get(base_url+'/bili/'+str(type)+'/'+id+'get_video_info')
+    data = get(base_url+'/bili/'+str(type)+'/'+str(id)+'/get_video_info')
     return data
-# video quality层
+################################################################## video quality层
 
 # 获取分辨率
 
@@ -270,3 +271,4 @@ def quality(av: int, cid: int) -> dict:
     new_video_info['APP']['video'] = dic(new_video_info['APP']['video'])
 
     return new_video_info
+
