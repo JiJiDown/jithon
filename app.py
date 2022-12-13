@@ -43,7 +43,23 @@ def check_input_url(url):
         return
     return '链接无效'
 
+#获取被勾选视频数据
+def get_video_list_info(num:int) -> list:
+    """
+    获取被勾选的视频数据
+    """
+    info_list = []
+    for checkbox_one in range(1,num):
+        info_list.append(pin.pin['check_'+str(checkbox_one)])
+    return info_list
 
+#创建清晰度列表
+def get_video_quality_list(data:dict) -> list:
+    out_audio_list = []
+    for type in ['WEB','TV','APP']:
+        for one_info in data['audio'][type]:
+            pass
+            #TODO
 #检查输入链接类型
 def get_video_id(url) -> list:
     """
@@ -90,12 +106,6 @@ def get_video_id(url) -> list:
         return [7,video_info]
     return ''
 
-#创建视频列表
-def build_list(data:list) -> list:
-    """
-    处理数据产生显示用列表
-    """
-
 def print_video_info(info):
     with out.use_scope('video_info'):#进入视频信息域
         data = info['data']
@@ -110,16 +120,20 @@ def print_video_info(info):
         
         out.put_text('视频发布时间 '+data['bili_pubdate_str'])
         #out.put_column([info_title,info_cover,info_desc,info_sort])#设置为垂直排布
+        #创建列表
         table_list = []
         num = 0
         table_list.append(['选择','标题'])
         for one in data['list']:#遍历列表
             num += 1
             list_one = []
-            list_one.append(pin.put_checkbox(name=str(num),options=[{'label':str(num),'value':one}]))#创建单选框
+            list_one.append(pin.put_checkbox(name='check_'+str(num),options=[{'label':str(num),'value':one}]))#创建单选框
             list_one.append(one['page_name'])#标题
             table_list.append(list_one)
         out.put_table(table_list,position=-1)
+        ioin.actions(buttons=[{'label':'开始下载','value':''}])#创建按键
+        need_video_list = get_video_list_info(num)#获取被勾选的视频列表
+        input()
 
 def main():#主函数
     with out.use_scope('main'):#创建并进入main域
@@ -131,5 +145,7 @@ def main():#主函数
         input()
         #io.input.actions('开始解析',buttons={})
 
+a = core.quality(76075245,130114228)
+input()
 #启动服务器
 io.start_server(main,port=8080, debug=True)

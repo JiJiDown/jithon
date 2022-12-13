@@ -70,8 +70,6 @@ def get(url: str) -> dict:
         get(url)
 
 # 浏览器发送函数
-
-
 def post(url: str, json: str) -> dict:
     """
     发送json格式信息
@@ -86,9 +84,8 @@ def post(url: str, json: str) -> dict:
     return response
 
 # User层
+
 # 获取登录状态
-
-
 def get_user_info() -> dict:
     """
     获取用户登陆状态
@@ -112,8 +109,6 @@ def get_user_info() -> dict:
     return {'code': True, 'mid': mid, 'is_login': is_login, 'uname': uname, 'face': face, 'vip_status': vip_status, 'vip_label_text': vip_label_text}
 
 # 获取登录二维码
-
-
 def get_login_status() -> dict:
     """
     获取登录二维码
@@ -135,8 +130,6 @@ def get_login_status() -> dict:
 # Jiji层
 
 # 获取下载目录
-
-
 def get_down_dir() -> str:
     """
     返回下载目录
@@ -146,8 +139,6 @@ def get_down_dir() -> str:
     return data['dir']
 
 # 更改下载目录
-
-
 def change_down_dir(down_dir: str):
     """
     修改下载目录
@@ -213,9 +204,7 @@ def info(type: int, id: str) -> dict:
 ################################################################## video quality层
 
 # 获取分辨率
-
-
-def quality(av: int, cid: int) -> dict:
+def quality(av:int, cid:int) -> dict:
     """
     获取视频清晰度
     av 为视频AV号 cid 为分P的id
@@ -226,49 +215,48 @@ def quality(av: int, cid: int) -> dict:
     one_video_info = one_video_info['data']['list']
 
     new_video_info = {}  # 新建分辨率排序
-    new_video_info['WEB'] = {}
-    new_video_info['WEB']['audio'] = []
-    new_video_info['WEB']['video'] = []
-    new_video_info['TV'] = {}
-    new_video_info['TV']['audio'] = []
-    new_video_info['TV']['video'] = []
-    new_video_info['APP'] = {}
-    new_video_info['APP']['audio'] = []
-    new_video_info['APP']['video'] = []
+    new_video_info['audio'] = {}
+    new_video_info['video'] = {}
+    new_video_info['audio']['WEB'] = []
+    new_video_info['audio']['TV'] = []
+    new_video_info['audio']['APP'] = []
+    new_video_info['video']['WEB'] = []
+    new_video_info['video']['TV'] = []
+    new_video_info['video']['APP'] = []
 
     for quality in one_video_info:  # 分类
         quality = code(quality)
         if quality["api_type"] == 0:
             if quality["is_audio"] == True:
-                new_video_info['WEB']['audio'].append(quality)
+                new_video_info['audio']['WEB'].append(quality)
                 continue
             if quality["is_video"] == True:
-                new_video_info['WEB']['video'].append(quality)
+                new_video_info['video']['WEB'].append(quality)
                 continue
 
         if quality["api_type"] == 1:
             if quality["is_audio"] == True:
-                new_video_info['TV']['audio'].append(quality)
+                new_video_info['audio']['TV'].append(quality)
                 continue
             if quality["is_video"] == True:
-                new_video_info['TV']['video'].append(quality)
+                new_video_info['video']['TV'].append(quality)
                 continue
 
         if quality["api_type"] == 2:
             if quality["is_audio"] == True:
-                new_video_info['APP']['audio'].append(quality)
+                new_video_info['audio']['APP'].append(quality)
                 continue
             if quality["is_video"] == True:
-                new_video_info['APP']['video'].append(quality)
+                new_video_info['video']['APP'].append(quality)
                 continue
 
     # 排序
-    new_video_info['WEB']['audio'] = dic(new_video_info['WEB']['audio'])
-    new_video_info['WEB']['video'] = dic(new_video_info['WEB']['video'])
-    new_video_info['TV']['audio'] = dic(new_video_info['TV']['audio'])
-    new_video_info['TV']['video'] = dic(new_video_info['TV']['video'])
-    new_video_info['APP']['audio'] = dic(new_video_info['APP']['audio'])
-    new_video_info['APP']['video'] = dic(new_video_info['APP']['video'])
+    new_video_info['audio']['WEB'] = dic(new_video_info['audio']['WEB'])
+    new_video_info['video']['WEB'] = dic(new_video_info['video']['WEB'])
+    new_video_info['audio']['TV'] = dic(new_video_info['audio']['TV'])
+    new_video_info['video']['TV'] = dic(new_video_info['video']['TV'])
+    new_video_info['audio']['APP'] = dic(new_video_info['audio']['APP'])
+    new_video_info['video']['APP'] = dic(new_video_info['video']['APP'])
 
     return new_video_info
 
