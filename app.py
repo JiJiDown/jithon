@@ -50,16 +50,42 @@ def get_video_list_info(num:int) -> list:
     """
     info_list = []
     for checkbox_one in range(1,num):
-        info_list.append(pin.pin['check_'+str(checkbox_one)])
+        if len(pin.pin['check_'+str(checkbox_one)]) != 0:
+            info_list.append(pin.pin['check_'+str(checkbox_one)])
     return info_list
+
+#获取选择的清晰度
+def get_choice_quality() -> dict:
+    """
+    获取选择的视频清晰度
+    """
+    return_dict = {}
+    return_dict['video'] = pin.pin['select_video']
+    return_dict['audio'] = pin.pin['select_audio']
+    return return_dict
 
 #创建清晰度列表
 def get_video_quality_list(data:dict) -> list:
+    """
+    返回[视频清晰度,音频清晰度]
+    """
     out_audio_list = []
-    for type in ['WEB','TV','APP']:
-        for one_info in data['audio'][type]:
-            pass
-            #TODO
+    out_video_list = []
+    out_audio_list.append({'label':'默认最高音质','value':{'quality':30280}})#默认选中
+    out_video_list.append({'label':'默认最高画质','value':{'quality':1000}})#默认选中
+    for type in ['WEB','TV','APP']:#遍历不同接口
+        for one_info in data['audio'][type]:#处理返回数据
+            label = type+' '+one_info['quality_str']+' - ['+one_info['codec']+']   '+one_info['stream_size']#选项标签
+            value = one_info#选项值
+            return_dict = {'label':label,'value':value}
+            out_audio_list.append(return_dict)
+        for one_info in data['video'][type]:#处理返回数据
+            label = type+' '+one_info['quality_str']+' - ['+one_info['codec']+']   '+one_info['stream_size']#选项标签
+            value = one_info#选项值
+            return_dict = {'label':label,'value':value}
+            out_video_list.append(return_dict)
+    return [out_video_list,out_audio_list]
+
 #检查输入链接类型
 def get_video_id(url) -> list:
     """
@@ -106,6 +132,7 @@ def get_video_id(url) -> list:
         return [7,video_info]
     return ''
 
+#显示视频下载界面
 def print_video_info(info):
     with out.use_scope('video_info'):#进入视频信息域
         data = info['data']
@@ -117,9 +144,15 @@ def print_video_info(info):
         out.put_image(cover)#视频封面
         out.put_text(data['video_desc'])#视频简介
         out.put_text('视频类型 '+str(data['sort'])+'-'+str(data['sub_sort']))
-        
         out.put_text('视频发布时间 '+data['bili_pubdate_str'])
         #out.put_column([info_title,info_cover,info_desc,info_sort])#设置为垂直排布
+
+        #创建清晰度选择
+        get_video_quality_info = get_video_quality_list(core.quality(data['list'][0]['page_av'],data['list'][0]['page_cid']))#读取视频列表第一个的清晰度
+        with out.use_scope('quality'):#创建清晰度选择域
+            pin.put_select(name='select_video',options=get_video_quality_info[0],value={'quality':1000})#创建视频选择
+            pin.put_select(name='select_audio',options=get_video_quality_info[1],value={'quality':30280})#创建音频选择
+
         #创建列表
         table_list = []
         num = 0
@@ -131,8 +164,10 @@ def print_video_info(info):
             list_one.append(one['page_name'])#标题
             table_list.append(list_one)
         out.put_table(table_list,position=-1)
+        
         ioin.actions(buttons=[{'label':'开始下载','value':''}])#创建按键
-        need_video_list = get_video_list_info(num)#获取被勾选的视频列表
+        need_video_list:list = get_video_list_info(num)#获取被勾选的视频列表
+        need_quality:dict = get_choice_quality()#获取选择的清晰度
         input()
 
 def main():#主函数
@@ -142,10 +177,7 @@ def main():#主函数
         out_url = get_video_id(url)
         get_video_info = core.info(out_url[0],out_url[1])
         print_video_info(get_video_info)#显示视频信息
-        input()
         #io.input.actions('开始解析',buttons={})
 
-a = core.quality(76075245,130114228)
-input()
 #启动服务器
 io.start_server(main,port=8080, debug=True)

@@ -159,6 +159,7 @@ def ad() -> dict:
 
 
 ################################################################### video info层
+
 #获取视频信息
 def info(type: int, id: str) -> dict:
     """
@@ -201,6 +202,7 @@ def info(type: int, id: str) -> dict:
     """
     data = get(base_url+'/bili/'+str(type)+'/'+str(id)+'/get_video_info')
     return data
+
 ################################################################## video quality层
 
 # 获取分辨率
@@ -210,8 +212,7 @@ def quality(av:int, cid:int) -> dict:
     av 为视频AV号 cid 为分P的id
     """
     # 获取指定分P清晰度
-    one_video_info = get(base_url+'/bili/1/'+str(av) +
-                         '/'+str(cid)+'/get_video_quality')
+    one_video_info = get(base_url+'/bili/1/'+str(av) +'/'+str(cid)+'/get_video_quality')
     one_video_info = one_video_info['data']['list']
 
     new_video_info = {}  # 新建分辨率排序
@@ -260,3 +261,43 @@ def quality(av:int, cid:int) -> dict:
 
     return new_video_info
 
+################################################################## 任务管理层
+
+#创建下载任务
+def post_new_task(avid:int,cid:int,video_quality_data:dict,audio_quality_data:dict,video_filename:str):
+    """
+    video_quality为1000时使用默认最高分辨率下载
+    以下参数仅在video_quality不等于1000时生效
+    api_type 指示使用的下载接口,在1000时默认走WEB接口
+
+    UseAV = true  使用B站AV号处理
+    UseAV = false 不使用B站AV号处理
+
+    """
+    video_quality = video_quality_data['quality']
+    audio_quality = audio_quality_data['quality']
+    api_type = video_quality_data['api_type']
+    if video_quality != 1000:
+        video_codecs = video_quality_data['codec']
+        json={
+                "avid": avid,
+                "cid": cid,
+                "video_quality": video_quality,
+                "audio_quality": audio_quality,
+                "api_type": api_type,
+                "useav": True,
+                "useflv": False,
+                "video_codecs": video_codecs,
+                "video_filename": video_filename
+            }
+    else:
+        json={
+            "avid": avid,
+            "cid": cid,
+            "video_quality": 1000,
+            "useav": True,
+            "useflv": False,
+            "video_codecs": 3,#TODO 这里以后增加选择项，默认使用什么编码
+            "video_filename": video_filename
+            }
+    post(base_url+'/task/post_new_task',json)
