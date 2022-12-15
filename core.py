@@ -89,6 +89,7 @@ def post(url: str, json: str) -> dict:
 def get_user_info() -> dict:
     """
     获取用户登陆状态
+    如果未登录 code = bool False
     mid = int 用户mid
     is_login = bool 登陆状态
     uname = str 用户名
@@ -113,7 +114,7 @@ def get_login_status() -> dict:
     """
     获取登录二维码
     code = 0为已登录
-    二维码保存至/temp/1.png
+    返回{'code','image'}
     """
     data = get(base_url+'/bili/user/tv/get_login_status')
     login_data = data['data']
@@ -121,10 +122,7 @@ def get_login_status() -> dict:
     login_image = login_data['image']  # 登录用二维码
     if login_successful != True:
         login_image = b64decode(login_image)  # 转换为图片
-        os.makedirs(os.getcwd()+'/temp', exist_ok=True)
-        with open(os.getcwd()+'/temp/1.png', 'wb+') as f:  # 写入图片
-            f.write(login_image)
-        return {'code': 1}
+        return {'code': 1,'image':login_image}
     return {'code': 0}
 
 # Jiji层
@@ -264,7 +262,7 @@ def quality(av:int, cid:int) -> dict:
 ################################################################## 任务管理层
 
 #创建下载任务
-def post_new_task(avid:int,cid:int,video_quality_data:dict,audio_quality_data:dict,video_filename:str):
+def post_new_task(avid:int,cid:int,video_quality_data:dict,audio_quality_data:dict,video_filename:str) -> dict:
     """
     video_quality为1000时使用默认最高分辨率下载
     以下参数仅在video_quality不等于1000时生效
@@ -276,8 +274,8 @@ def post_new_task(avid:int,cid:int,video_quality_data:dict,audio_quality_data:di
     """
     video_quality = video_quality_data['quality']
     audio_quality = audio_quality_data['quality']
-    api_type = video_quality_data['api_type']
     if video_quality != 1000:
+        api_type = video_quality_data['api_type']
         video_codecs = video_quality_data['codec']
         json={
                 "avid": avid,
@@ -297,7 +295,14 @@ def post_new_task(avid:int,cid:int,video_quality_data:dict,audio_quality_data:di
             "video_quality": 1000,
             "useav": True,
             "useflv": False,
-            "video_codecs": 3,#TODO 这里以后增加选择项，默认使用什么编码
+            "video_codecs": 1,#TODO 这里以后增加选择项，默认使用什么编码
             "video_filename": video_filename
             }
-    post(base_url+'/task/post_new_task',json)
+    data = post(base_url+'/task/post_new_task',json)
+    return data
+
+#获取下载任务进度
+def get_task_status(control_name:str):
+    return_data = get(base_url+'/task/'+control_name+'/get_task_status')
+    status_text = return_data['data']['status_text']#下载进度
+#a = post_new_task()
