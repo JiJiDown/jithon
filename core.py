@@ -1,8 +1,6 @@
-import sys
-import traceback  # bug捕获
 import os
-import re  # 正则表达式
-import time  # 时间
+import json
+import time
 from base64 import b64decode  # 二维码编码
 
 import requests
@@ -18,6 +16,26 @@ base_url = "http://127.0.0.1:64000"  # 默认端口
 local_dir = os.getcwd()  # 默认下载地址
 appdata = os.getenv('APPDATA')  # 获取系统变量
 os.makedirs(local_dir+'/temp', exist_ok=True)  # 创建临时文件夹
+
+#检查核心是否启动
+def check() -> str:
+    """
+    检查核心是否启动
+    """
+    try:
+        # cj = {i.split("=")[0]:i.split("=")[1] for i in cookies.split(";")}
+        response: dict = requests.get(url=base_url+"/jijidown/settings/get_download_dir", headers={
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.93 Safari/537.36",
+            "accept": "application/json, text/plain, */*",
+            "accept-encoding": "gzip, deflate, br",
+            "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
+            "origin": "https://space.bilibili.com"
+        },timeout=5)
+        if response.status_code == 200:
+            return 'ok'
+        return 'error'
+    except:
+        return 'error'
 
 #添加编码信息
 def code(keys):
@@ -47,7 +65,6 @@ def dic(info):
             if c["quality"] == b:
                 new_info.append(c)
     return new_info
-
 
 # 浏览器请求函数
 def get(url: str) -> dict:
@@ -304,5 +321,30 @@ def post_new_task(avid:int,cid:int,video_quality_data:dict,audio_quality_data:di
 #获取下载任务进度
 def get_task_status(control_name:str):
     return_data = get(base_url+'/task/'+control_name+'/get_task_status')
-    status_text = return_data['data']['status_text']#下载进度
-#a = post_new_task()
+    return return_data['data']
+
+#读取json中的下载列表
+def load_json() -> dict:
+    """
+    读取配置参数
+    """
+    if os.path.exists('set.json'):
+        with open('set.json','r') as f:
+            return_data = json.loads(f.read())
+    else:
+        data = {}
+        data['need_down_list'] = []
+        data['fin_down_list'] = []
+        with open('set.json','w') as f:
+            f.write(json.dumps(data))
+        return_data = data
+    return return_data
+
+#写入下载列表
+def save_json(data:dict) -> None:
+    """
+    读取配置参数
+    """
+    with open('set.json','w') as f:
+        f.write(json.dumps(data))
+    return

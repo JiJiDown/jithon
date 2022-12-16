@@ -1,13 +1,22 @@
 import re
 import os
 import time
+import threading #多进程库
 
 import requests
 import pywebio as io
 out = io.output
 ioin = io.input
 pin = io.pin
-import core
+import core #导入python核心接口
+
+######TODO 防止核心和前端任务不同步，暂时删除下载列表保存功能
+data = {}
+data['need_down_list'] = []
+data['fin_down_list'] = []
+core.save_json(data)
+#声明下载列表
+set_info = core.load_json()
 
 #检查下载路径
 def check_dir():
@@ -56,50 +65,6 @@ def check_input_url(url):
         video_info = re.findall('?sid=(\d*)',url)[0]
         return
     return '链接无效'
-
-#获取被勾选视频数据
-def get_video_list_info(num:int) -> list:
-    """
-    获取被勾选的视频数据
-    """
-    info_list = []
-    for checkbox_one in range(1,num):
-        if len(pin.pin['check_'+str(checkbox_one)]) != 0:
-            info_list.append(pin.pin['check_'+str(checkbox_one)][0])
-    return info_list
-
-#获取选择的清晰度
-def get_choice_quality() -> dict:
-    """
-    获取选择的视频清晰度
-    返回值为{'video','audio'}
-    """
-    return_dict = {}
-    return_dict['video'] = pin.pin['select_video']
-    return_dict['audio'] = pin.pin['select_audio']
-    return return_dict
-
-#创建清晰度列表
-def get_video_quality_list(data:dict) -> list:
-    """
-    返回[视频清晰度,音频清晰度]
-    """
-    out_audio_list = []
-    out_video_list = []
-    out_audio_list.append({'label':'默认最高音质','value':{'quality':30280}})#默认选中
-    out_video_list.append({'label':'默认最高画质','value':{'quality':1000}})#默认选中
-    for type in ['WEB','TV','APP']:#遍历不同接口
-        for one_info in data['audio'][type]:#处理返回数据
-            label = type+' '+one_info['quality_str']+' - ['+one_info['codec']+']   '+one_info['stream_size']#选项标签
-            value = one_info#选项值
-            return_dict = {'label':label,'value':value}
-            out_audio_list.append(return_dict)
-        for one_info in data['video'][type]:#处理返回数据
-            label = type+' '+one_info['quality_str']+' - ['+one_info['codec']+']   '+one_info['stream_size']#选项标签
-            value = one_info#选项值
-            return_dict = {'label':label,'value':value}
-            out_video_list.append(return_dict)
-    return [out_video_list,out_audio_list]
 
 #检查输入链接类型
 def get_video_id(url) -> list:
@@ -155,15 +120,100 @@ def get_video_id(url) -> list:
             return [1,video_info]
     return ''
 
+#检查任务状态类型
+def get_task_status(data:int) -> str:
+    """
+    从代码查找对应的任务状态
+    """
+    if data == 0:
+        return '错误'
+    if data == 1:
+        return '暂停'
+    if data == 2:
+        return '运行中'
+    if data == 3:
+        return '等待'
+    if data == 4:
+        return '正在进行合并'
+    if data == 5:
+        return '正在提取MP3'
+    if data == 6:
+        return '完成'
+
+#将下载完成的移动到完成任务列表中
+def remove_fin_task(control_name:str):
+    data = core.load_json()#读取配置
+    for one in data['need_down_list']:#遍历正在进行的任务列表
+        if control_name == one['control_name']:
+            data['fin_down_list'].append(one)
+            data['need_down_list'].remove(one)
+            break
+    core.save_json(data)
+    return
+
+#从任务列表中移除任务（暂时）TODO 未来实现自动恢复下载进度
+def remove_task(control_name:str):
+    data = core.load_json()#读取配置
+    for one in data['need_down_list']:#遍历正在进行的任务列表
+        if control_name == one['control_name']:
+            data['need_down_list'].remove(one)
+            break
+    core.save_json(data)
+    return
+
+#获取被勾选视频数据
+def get_video_list_info(num:int) -> list:
+    """
+    获取被勾选的视频数据
+    """
+    info_list = []
+    for checkbox_one in range(1,num+1):
+        if len(pin.pin['check_'+str(checkbox_one)]) != 0:#判断是否勾选了至少一个
+            info_list.append(pin.pin['check_'+str(checkbox_one)][0])
+    return info_list
+
+#获取选择的清晰度
+def get_choice_quality() -> dict:
+    """
+    获取选择的视频清晰度
+    返回值为{'video','audio'}
+    """
+    return_dict = {}
+    return_dict['video'] = pin.pin['select_video']
+    return_dict['audio'] = pin.pin['select_audio']
+    return return_dict
+
+#创建清晰度列表
+def get_video_quality_list(data:dict) -> list:
+    """
+    返回[视频清晰度,音频清晰度]
+    """
+    out_audio_list = []
+    out_video_list = []
+    out_audio_list.append({'label':'默认最高音质','value':{'quality':30280}})#默认选中
+    out_video_list.append({'label':'默认最高画质','value':{'quality':1000}})#默认选中
+    for type in ['WEB','TV','APP']:#遍历不同接口
+        for one_info in data['audio'][type]:#处理返回数据
+            label = type+' '+one_info['quality_str']+' - ['+one_info['codec']+']   '+one_info['stream_size']#选项标签
+            value = one_info#选项值
+            return_dict = {'label':label,'value':value}
+            out_audio_list.append(return_dict)
+        for one_info in data['video'][type]:#处理返回数据
+            label = type+' '+one_info['quality_str']+' - ['+one_info['codec']+']   '+one_info['stream_size']#选项标签
+            value = one_info#选项值
+            return_dict = {'label':label,'value':value}
+            out_video_list.append(return_dict)
+    return [out_video_list,out_audio_list]
+
 #处理下载文件名
 def make_down_name(info_date:dict,video_data:dict) -> str:
     """
     下载文件名处理
     预留接口
     """
-    return video_data['video_filename'][:-3]
+    return video_data['video_filename']
 
-#显示视频下载界面
+#显示视频下载选择界面
 def print_video_info(info) -> list:
     """
     创建视频下载界面
@@ -214,13 +264,167 @@ def print_video_info(info) -> list:
             need_video_list:list = data['list']
         elif control_buttom == '2':#如果选择退出
             return 'out'
-        if  len(need_video_list) == 0:#如果未选择任何视频
+        if len(need_video_list) == 0:#如果未选择任何视频
             out.toast('未选择任何视频',color='info',duration='0')#弹出错误弹窗
             return 'out'
     return [data,need_video_list,need_quality]
 
+#显示完成列表
+def show_fin_list():
+    """
+    处理下载列表并显示
+    {'need_video','control_name'}
+    """
+    #加载任务列表
+    data_list = core.load_json()['fin_down_list']#获取需要下载的列表
+    if len(data_list) == 0:#如果列表为空则等待
+        time.sleep(1)
+        show_fin_list()
+    show_list = []
+    #初始化
+    for list_one in data_list:#遍历创建下载列表
+        show_list.append([
+            out.put_row([
+                out.put_text(list_one['video_info']['page_name']),#TODO 创建标题
+                out.put_column([
+                    out.put_scope('sta_text_'+list_one['control_name']),#创建用于进度提示的域,控制值为'sta_text_'+list_one['control_name']
+                    out.put_processbar(list_one['control_name'],init=0)#下载列表,控制值为list_one['control_name']
+                    ]),
+                out.put_scope('sta_worktype_'+list_one['control_name']),#创建用于显示任务状态的域,控制值为'sta_worktype_'+list_one['control_name']
+                ])
+        ])# 创建显示
+    
+    #显示列表
+    with out.use_scope('fin_work',clear=True):#清除域
+        out.put_table(show_list)
+
+        #刷新状态
+        while 1==1:
+            for list_one in data_list:#遍历下载列表
+                get_task_info = core.get_task_status(list_one['control_name'])#获取下载任务状态
+                if get_task_info == None:#如果类型为None说明该任务不在下载器中 TODO 未来实现自动添加任务继续下载
+                    remove_task(list_one['control_name'])#移除任务
+                    show_down_list()#重新启动下载列表维护进程
+                out.set_processbar(list_one['control_name'],value= get_task_info['progress'] / 100)#刷新进度条状态
+                with out.use_scope('sta_text_'+list_one['control_name'],clear=True):#进入用于进度提示的域并清空
+                    out.put_text(get_task_info['status_text'])#显示进度提示文本
+                with out.use_scope('sta_worktype_'+list_one['control_name'],clear=True):#进入用于显示任务状态提示文本的域并清空
+                    out.put_text(get_task_status(int(get_task_info['task_status'])))#显示任务状态提示文本
+                    if int(get_task_info['task_status']) == 6:#如果任务下载完成
+                        remove_fin_task(list_one['control_name'])#将任务移入完成列表
+                if get_task_info['msg'] != '':#如果出现错误信息
+                    out.toast(list_one['video_info']['video_filename']+'   '+get_task_info['msg'],color='error')
+            time.sleep(1)#等待1秒
+            #如果下载列表更新
+            if data_list != core.load_json()['need_fin_list']:#如果现在维护的和存储的不一样
+                show_fin_list()
+
+#显示下载列表
+def show_down_list():
+    """
+    处理下载列表并显示
+    {'need_video','control_name'}
+    """
+    #加载任务列表
+    data_list = core.load_json()['need_down_list']#获取需要下载的列表
+    if len(data_list) == 0:#如果列表为空则等待
+        time.sleep(1)
+        show_down_list()
+    show_list = []
+    #初始化
+    for list_one in data_list:#遍历创建下载列表
+        show_list.append([
+            out.put_row([
+                out.put_text(list_one['video_info']['page_name']),#TODO 创建标题
+                out.put_column([
+                    out.put_scope('sta_text_'+list_one['control_name']),#创建用于进度提示的域,控制值为'sta_text_'+list_one['control_name']
+                    out.put_processbar(list_one['control_name'],init=0)#下载列表,控制值为list_one['control_name']
+                    ]),
+                out.put_scope('sta_worktype_'+list_one['control_name']),#创建用于显示任务状态的域,控制值为'sta_worktype_'+list_one['control_name']
+                ])
+        ])# 创建显示
+    
+    #显示列表
+    with out.use_scope('down_work',clear=True):#清除域
+        out.put_table(show_list)
+
+    #刷新状态
+    while 1==1:
+        for list_one in data_list:#遍历下载列表
+            get_task_info = core.get_task_status(list_one['control_name'])#获取下载任务状态
+            if get_task_info == None:#如果类型为None说明该任务不在下载器中 TODO 未来实现自动添加任务继续下载
+                remove_task(list_one['control_name'])#移除任务
+                show_down_list()#重新启动下载列表维护进程
+            out.set_processbar(list_one['control_name'],value= get_task_info['progress'] / 100)#刷新进度条状态
+            with out.use_scope('sta_text_'+list_one['control_name'],clear=True):#进入用于进度提示的域并清空
+                out.put_text(get_task_info['status_text'])#显示进度提示文本
+            with out.use_scope('sta_worktype_'+list_one['control_name'],clear=True):#进入用于显示任务状态提示文本的域并清空
+                out.put_text(get_task_status(int(get_task_info['task_status'])))#显示任务状态提示文本
+                if int(get_task_info['task_status']) == 6:#如果任务下载完成
+                    remove_fin_task(list_one['control_name'])#将任务移入完成列表
+            if get_task_info['msg'] != '':#如果出现错误信息
+                out.toast(list_one['video_info']['video_filename']+'   '+get_task_info['msg'],color='error')
+        time.sleep(1)#等待1秒
+        #如果下载列表更新
+        if data_list != core.load_json()['need_down_list']:#如果现在维护的和存储的不一样
+            show_down_list()
+
+#解析输入的url
+def start_url():
+    url = pin.pin['url_input']#获取输入
+    check_return = check_input_url(url)
+    if check_return != None:
+        out.toast(check_return,duration=3,color='error')#显示错误信息
+        return
+    #清除旧显示内容
+    out.clear('video_info')
+    with out.use_scope('main'):
+    #显示加载提示
+        with out.use_scope('load'):
+            out.put_loading()
+            out.put_text('解析中')
+        #解析url
+        out_url = get_video_id(url)
+        get_video_info = core.info(out_url[0],out_url[1])
+        return_data = print_video_info(get_video_info)#显示视频信息,返回视频信息
+        if return_data == 'out':#如果选择退出界面或未勾选任何视频
+            out.clear('video_info')#清空video_info域
+            return
+        #开始下载任务
+        video_data = return_data[2]['video']
+        audio_data = return_data[2]['audio']
+        #滚动到最底下
+        out.scroll_to('main','buttom')
+        with out.use_scope('posting'):
+            out.put_text('任务发送中')
+            out.put_processbar('loading',init=0)#设置进度条
+        num = 0
+        for need_video in return_data[1]:
+            return_down_data:dict = core.post_new_task(need_video['page_av'],need_video['page_cid'],video_data,audio_data,make_down_name(return_data,need_video))
+            set_info['need_down_list'].append({'control_name':return_down_data['data']['control_name'],'video_info':need_video})#添加控制字节段至下载列表
+            core.save_json(set_info)#刷新设置里的下载列表
+            num += 1
+            out.set_processbar('loading',num / len(return_data[1]))#设置进度条进度
+        out.clear('loading')
+        out.put_text('任务发送完成')
+    return
+
+
+#主函数
 def main():#主函数
+    print('进入main')
     with out.use_scope('main'):#创建并进入main域
+        #等待核心响应提示
+        with out.use_scope('load'):
+            out.put_row([
+                out.put_loading(),
+                out.put_text('等待核心响应,请检查核心是否启动')
+            ])
+        while core.check() != 'ok':#当响应不正确
+            time.sleep(1)
+        out.clear('load')
+        out.remove('load')
+        #初始化
         out.scroll_to('main','top')
         out.clear('main')
         #检查登录
@@ -242,37 +446,41 @@ def main():#主函数
                     main()
                 time.sleep(1)
         
-        #添加设置
-        with out.use_scope('set',position=-1):#创建域,并设置位置为底部
-            out.put_row([out.put_text('目前下载地址：'),pin.put_input(name='change_dir',value=core.get_down_dir()),out.put_button('确认修改',onclick=check_dir)])
+        #创建横向标签栏
+        scope_url = out.put_scope('url')#创建url域
+        scope_set = out.put_scope('set')#创建set域
+        scope_down = out.put_scope('down')#创建down域
+        out.put_tabs([{'title':'链接解析','content':scope_url},{'title':'下载列表','content':scope_down},{'title':'设置','content':scope_set}])#创建
         
-        #创建url输入框
-        url = ioin.input('请输入链接',type='text',validate=check_input_url,position=1)#限制类型为url,使用check_input_url检查内容
-        #显示加载提示
-        with out.use_scope('load'):
-            out.put_loading()
-            out.put_text('解析中')
-        #解析url
-        out_url = get_video_id(url)
-        get_video_info = core.info(out_url[0],out_url[1])
-        return_data = print_video_info(get_video_info)#显示视频信息,返回视频信息
-        if return_data == 'out':#如果选择退出界面
-            out.clear('video_info')
-            main()
-        #开始下载任务
-        down_list = []
-        video_data = return_data[2]['video']
-        audio_data = return_data[2]['audio']
-        #滚动到最底下
-        out.scroll_to('main','buttom')
-        out.put_processbar('loading',init=0)#设置进度条
-        num = 0
-        for need_video in return_data[1]:
-            return_down_data:dict = core.post_new_task(need_video['page_av'],need_video['page_cid'],video_data,audio_data,make_down_name(return_data,need_video))
-            down_list.append(return_down_data['data']['control_name'])#添加控制字节段至列表
-            num += 1
-            out.set_processbar('loading',num / len(return_data[1]))#设置进度条进度
 
-#启动服务器
-#io.start_server(main,port=8080, debug=True)
-main()
+        #创建url输入框
+        with out.use_scope('url'):#进入域
+            pin.put_input('url_input',label='请输入链接',type='text')#限制类型为url,使用check_input_url检查内容
+            out.put_button(label='解析链接',onclick=start_url)#创建按键
+            out.put_scope('video_info')
+        
+        #创建下载列表
+        with out.use_scope('down'):
+            scope_down_work = out.put_scope('down_work')
+            scope_down_fin = out.put_scope('down_fin')
+            out.put_tabs([{'title':'下载中','content':scope_down_work},{'title':'下载完成','content':scope_down_fin}])#创建横向标签栏
+            
+            # 开启新线程
+            thread1 = threading.Thread(target=show_down_list)
+            thread2 = threading.Thread(target=show_fin_list)
+            if not thread1.is_alive():
+                print('启动线程1')
+                io.session.register_thread(thread1)
+                thread1.setDaemon(True)#设为守护进程
+                thread1.start()
+            if not thread2.is_alive():
+                print('启动线程2')
+                io.session.register_thread(thread2)
+                thread2.setDaemon(True)#设为守护进程
+                thread2.start()
+
+        #创建设置
+        with out.use_scope('set'):#进入域
+            out.put_row([out.put_text('目前下载地址：'),pin.put_input(name='change_dir',value=core.get_down_dir()),out.put_button('确认修改',onclick=check_dir)])
+
+io.start_server(main,port=8080, debug=True)
