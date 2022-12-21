@@ -430,7 +430,7 @@ def start_url():
         #滚动到最底下
         out.scroll_to('main','buttom')
         with out.use_scope('posting'):
-            out.put_col([
+            out.put_column([
                 out.put_text('任务发送中').style('line-height: 0.5'),
                 out.put_processbar('loading',init=0)#设置进度条
             ]).style('border: 1px solid #e9ecef;border-radius: .25rem')
