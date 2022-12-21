@@ -20,13 +20,13 @@ core.save_json(data)
 #声明下载列表
 set_info = core.load_json()
 
-#获取css
-def css(path:str) -> str:
+#挂载核心
+def start_core():
     """
-    获取css样式
+    挂载核心
     """
-    with open(str(Path('css/'+path)),'r') as f:
-        return f.read
+    os.system('taskkill /f /t /im "JiJiDownCore-win64.exe"')#关闭核心
+    os.system(str(Path('resources/JiJiDownCore-win64.exe')))#启动核心
 
 #检查下载路径
 def check_dir():
@@ -166,6 +166,7 @@ def remove_task(control_name:str):
     data = core.load_json()#读取配置
     for one in data['need_down_list']:#遍历正在进行的任务列表
         if control_name == one['control_name']:
+            core.delete_task(one['control_name'])#删除任务
             data['need_down_list'].remove(one)
             break
     core.save_json(data)
@@ -370,6 +371,8 @@ def show_down_list():
                     out.put_processbar(list_one['control_name'],init=0)#下载列表,控制值为list_one['control_name']
                     ]),
                 out.put_scope('sta_worktype_'+list_one['control_name']),#创建用于显示任务状态的域,控制值为'sta_worktype_'+list_one['control_name']
+                #out.put_button('暂停',onclick=lambda:core.patch_pause_task(list_one['control_name']),color='warning'),#暂停按钮
+                out.put_button('删除',onclick=lambda:remove_task(list_one['control_name']),color='danger'),#删除按钮
                 ])
         ])# 创建显示
     
@@ -447,6 +450,12 @@ def start_url():
 
 #主函数
 def main():#主函数
+    print('主函数启动')
+    if not start_jiji_core.is_alive():
+        print('启动核心')
+        io.session.register_thread(start_jiji_core)
+        start_jiji_core.setDaemon(True)#设为守护进程
+        start_jiji_core.start()
     with out.use_scope('main'):#创建并进入main域
         out.scroll_to('main','top')
         #等待核心响应提示
@@ -540,6 +549,7 @@ def main():#主函数
         with out.use_scope('set'):#进入域
             out.put_row([out.put_text('目前下载地址：'),pin.put_input(name='change_dir',value=core.get_down_dir()),out.put_button('确认修改',onclick=check_dir)])
 
+start_jiji_core = threading.Thread(target=start_core)
 io.config(title='Jithon 2.0 Beta',description='本应用为唧唧2.0基于python的webui实现',theme='yeti')
 print('主程序启动,如未自动跳转请打开http://127.0.0.1:8080')
 io.start_server(main,host='127.0.0.1',port=8080,debug=True,cdn=False,auto_open_webbrowser=True)

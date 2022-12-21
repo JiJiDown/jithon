@@ -100,6 +100,32 @@ def post(url: str, json: str) -> dict:
     }).json()
     return response
 
+# 浏览器发送函数
+def patch(url: str) -> dict:
+    """
+    发送patch信息
+    """
+    response = brower.patch(url=url, headers={
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.93 Safari/537.36",
+        "accept": "application/json, text/plain, */*",
+        "accept-encoding": "gzip, deflate, br",
+        "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
+        "origin": "https://space.bilibili.com"
+    }).json()
+    return response
+
+def delete(url: str) -> dict:
+    """
+    发送patch信息
+    """
+    response = brower.delete(url=url, headers={
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.93 Safari/537.36",
+        "accept": "application/json, text/plain, */*",
+        "accept-encoding": "gzip, deflate, br",
+        "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
+        "origin": "https://space.bilibili.com"
+    }).json()
+    return response
 # User层
 
 # 获取登录状态
@@ -316,12 +342,29 @@ def post_new_task(avid:int,cid:int,video_quality_data:dict,audio_quality_data:di
             "video_filename": video_filename
             }
     data = post(base_url+'/task/post_new_task',json)
+    download_danmaku(avid,cid,video_filename)#下载弹幕
     return data
+
+#下载弹幕
+def download_danmaku(avid:int,cid:int,video_filename:str):
+    return_data = get(base_url+'/danmaku/'+avid+'/'+cid+'/download_danmaku?file='+video_filename)
 
 #获取下载任务进度
 def get_task_status(control_name:str):
     return_data = get(base_url+'/task/'+control_name+'/get_task_status')
     return return_data['data']
+
+#暂停任务
+def patch_pause_task(control_name:str):
+    return_data = patch(base_url+'/task/'+control_name+'/patch_pause_task')
+
+#继续任务
+def patch_resume_task(control_name:str):
+    return_data = patch(base_url+'/task/'+control_name+'/patch_resume_task')
+
+#删除任务和文件
+def delete_task(control_name:str):
+    return_data = patch(base_url+'/task/'+control_name+'/delete_task_and_file')
 
 #读取json中的下载列表
 def load_json() -> dict:
