@@ -6,3 +6,4 @@ resources/ffmpeg.exe
 resources/JiJiDownCore-win64.exe
 __pycache__/*
 __pycache__/core.cpython-38.pyc
+app.spec
