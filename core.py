@@ -4,8 +4,8 @@ import time
 from base64 import b64decode  # 二维码编码
 from pathlib import Path #路径库
 import hashlib#sha256加密库
-import wget
 
+import wget
 import requests
 
 # 初始化
@@ -205,17 +205,20 @@ def down_core(system_type:str,system_bit:str) -> str:
     返回下载的核心文件名
     """
     if system_type == 'Windows':#如果平台为windows
-        if system_bit == '64bit':#如果系统位数为64
+        if system_bit == 'AMD64':#如果系统位数为64
             core_name = wget.download('https://101.34.172.63/PC/ReWPF/core/JiJiDownCore-win64.exe',out=str(Path('resources/')))
             return core_name
-        elif system_bit == '32bit':
+        elif system_bit == 'x86':
+            core_name = wget.download('https://101.34.172.63/PC/ReWPF/core/JiJiDownCore-win32.exe',out=str(Path('resources/')))
+            return core_name
+        elif system_bit == 'i386':
             core_name = wget.download('https://101.34.172.63/PC/ReWPF/core/JiJiDownCore-win32.exe',out=str(Path('resources/')))
             return core_name
     elif system_type == 'Linux':
-        if system_bit == 'amd64':#如果系统位数为64
+        if system_bit == 'AMD64':#如果系统为x86平台
             core_name = wget.download('https://101.34.172.63/PC/ReWPF/core/JiJiDownCore-linux-amd64',out=str(Path('resources/')))
             return core_name
-        elif system_bit == 'arm64':
+        elif system_bit == 'aarch64':
             core_name = wget.download('https://101.34.172.63/PC/ReWPF/core/JiJiDownCore-linux-arm64',out=str(Path('resources/')))
         #如果均不匹配下载amd64版本
         core_name = wget.download('https://101.34.172.63/PC/ReWPF/core/JiJiDownCore-linux-amd64',out=str(Path('resources/')))

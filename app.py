@@ -22,7 +22,7 @@ core.save_json(data)
 set_info = core.load_json()
 #获取当前平台
 system_type = platform.system()#系统名称
-system_bit = platform.architecture()[0]#操作系统位数
+system_bit = platform.machine()#操作系统位数
 #启动时间
 local_time = time.strftime("%Y_%m_%d_%H_%M_%S", time.localtime())
 
@@ -33,7 +33,7 @@ def start_core():
     """
     print("windows核心已启动")
     os.system('taskkill /f /t /im "JiJiDownCore-win64.exe"')#关闭核心
-    core_out = os.popen(str(Path('resources/JiJiDownCore-win64.exe'))+'>>'+str(Path('resources/log_'+local_time+'.log')))#启动核心
+    core_out = os.popen(str(Path('resources/JiJiDownCore-win64.exe'))+'>>'+str(Path('temp/log_'+local_time+'.log')))#启动核心
 
 #检查下载路径
 def check_dir():

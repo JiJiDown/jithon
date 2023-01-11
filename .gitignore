@@ -1,5 +1,9 @@
 temp
 .vscode
-resources/*
-__pycache__/*
+resources/
+__pycache__/
 app.spec
+build/
+dist/
+hugo_0.109.0_windows-amd64/
+wiki.md
