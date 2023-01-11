@@ -1,0 +1,28 @@
+portable: false
+log-level: debug
+external-controller: 127.0.0.1:64000
+external-ui: ""
+secret: ""
+user-info:
+    raw-access-token: ""
+    raw-cookies: ""
+    hide-nickname: false
+download-task:
+    temp-dir: ""
+    download-dir: G:\JiJiDown
+    ffmpeg-path: ""
+    max-task: 2
+    download-speed-limit: 1
+    disable-mcdn: false
+jdm:
+    max-retry: 0
+    retry-wait: 0
+    jdm-task-workers: 0
+    session-workers: 0
+    min-split-size: 0
+    proxy-addr: ""
+    check-best-mirror: false
+    cache-in-ram: false
+    cache-in-ram-limit: 0
+    insecure-skip-verify: false
+    certs-file-path: ""

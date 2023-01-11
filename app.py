@@ -3,6 +3,7 @@ import os
 import time
 import threading #多进程库
 from pathlib import Path #路径库
+import platform#获取系统信息
 
 import requests
 import pywebio as io
@@ -19,14 +20,20 @@ data['fin_down_list'] = []
 core.save_json(data)
 #声明下载列表
 set_info = core.load_json()
+#获取当前平台
+system_type = platform.system()#系统名称
+system_bit = platform.architecture()[0]#操作系统位数
+#启动时间
+local_time = time.strftime("%Y_%m_%d_%H_%M_%S", time.localtime())
 
 #挂载核心
 def start_core():
     """
     挂载核心
     """
+    print("windows核心已启动")
     os.system('taskkill /f /t /im "JiJiDownCore-win64.exe"')#关闭核心
-    os.system(str(Path('resources/JiJiDownCore-win64.exe')))#启动核心
+    core_out = os.popen(str(Path('resources/JiJiDownCore-win64.exe'))+'>>'+str(Path('resources/log_'+local_time+'.log')))#启动核心
 
 #检查下载路径
 def check_dir():
@@ -549,6 +556,8 @@ def main():#主函数
         with out.use_scope('set'):#进入域
             out.put_row([out.put_text('目前下载地址：'),pin.put_input(name='change_dir',value=core.get_down_dir()),out.put_button('确认修改',onclick=check_dir)])
 
+print('自动更新核心')
+core.update_core(system_type,system_bit)#更新核心
 start_jiji_core = threading.Thread(target=start_core)
 io.config(title='Jithon 2.0 Beta',description='本应用为唧唧2.0基于python的webui实现',theme='yeti')
 print('主程序启动,如未自动跳转请打开http://127.0.0.1:8080')

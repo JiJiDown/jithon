@@ -1,9 +1,5 @@
 temp
 .vscode
-resources/aria2c.exe
-resources/aria2ng.html
-resources/ffmpeg.exe
-resources/JiJiDownCore-win64.exe
+resources/*
 __pycache__/*
-__pycache__/core.cpython-38.pyc
 app.spec

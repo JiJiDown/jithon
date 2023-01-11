@@ -2,10 +2,14 @@ import os
 import json
 import time
 from base64 import b64decode  # 二维码编码
+from pathlib import Path #路径库
+import hashlib#sha256加密库
+import wget
 
 import requests
 
 # 初始化
+local_core = str(Path('resources/JiJiDownCore-win64.exe').resolve())
 local_time = time.strftime("%y/%m/%d", time.localtime())
 brower = requests.Session()
 headers = {
@@ -13,9 +17,12 @@ headers = {
 }
 
 base_url = "http://127.0.0.1:64000"  # 默认端口
-local_dir = os.getcwd()  # 默认下载地址
+local_dir = str(Path.cwd())  # 默认下载地址
 appdata = os.getenv('APPDATA')  # 获取系统变量
-os.makedirs(local_dir+'/temp', exist_ok=True)  # 创建临时文件夹
+Path(local_dir+'/resources').mkdir(parents=True,exist_ok=True)  # 创建核心文件夹
+Path(local_dir+'/temp').mkdir(parents=True,exist_ok=True)# 创建临时文件夹
+Path(appdata+'/JiJiDown').mkdir(parents=True,exist_ok=True)# 创建jijidown配置文件夹
+
 
 #检查核心是否启动
 def check() -> str:
@@ -126,7 +133,7 @@ def delete(url: str) -> dict:
         "origin": "https://space.bilibili.com"
     }).json()
     return response
-# User层
+############################################################ User层
 
 # 获取登录状态
 def get_user_info() -> dict:
@@ -168,7 +175,128 @@ def get_login_status() -> dict:
         return {'code': 1,'image':login_image}
     return {'code': 0}
 
-# Jiji层
+############################################################ Jiji层
+
+# 获取服务器sha265
+def get_sha265() -> dict:
+    """
+    获取最新的服务器上存储的sha265
+    """
+    cloud_hash = brower.get('https://101.34.172.63/PC/ReWPF/core/JiJiDownCore-hash.txt').text#获取云端最新核心信息
+    cloud_hash = cloud_hash.split()
+    fin = []
+    for a in cloud_hash:
+        a = a.split('|')
+        fin.append(a)
+    return fin
+
+# 检查是否存在核心
+def find_core():
+    dir_path = Path('resources/').iterdir()
+    fin = []
+    for i in dir_path:
+        fin.append(i.name)
+    return fin
+
+# 下载最新版本
+def down_core(system_type:str,system_bit:str) -> str:
+    """
+    自动匹配平台下载核心
+    返回下载的核心文件名
+    """
+    if system_type == 'Windows':#如果平台为windows
+        if system_bit == '64bit':#如果系统位数为64
+            core_name = wget.download('https://101.34.172.63/PC/ReWPF/core/JiJiDownCore-win64.exe',out=str(Path('resources/')))
+            return core_name
+        elif system_bit == '32bit':
+            core_name = wget.download('https://101.34.172.63/PC/ReWPF/core/JiJiDownCore-win32.exe',out=str(Path('resources/')))
+            return core_name
+    elif system_type == 'Linux':
+        if system_bit == 'amd64':#如果系统位数为64
+            core_name = wget.download('https://101.34.172.63/PC/ReWPF/core/JiJiDownCore-linux-amd64',out=str(Path('resources/')))
+            return core_name
+        elif system_bit == 'arm64':
+            core_name = wget.download('https://101.34.172.63/PC/ReWPF/core/JiJiDownCore-linux-arm64',out=str(Path('resources/')))
+        #如果均不匹配下载amd64版本
+        core_name = wget.download('https://101.34.172.63/PC/ReWPF/core/JiJiDownCore-linux-amd64',out=str(Path('resources/')))
+        return core_name
+    elif system_type == 'darwin':
+        if system_bit == 'amd64':#如果系统位数为64
+            core_name = wget.download('https://101.34.172.63/PC/ReWPF/core/JiJiDownCore-darwin-amd64',out=str(Path('resources/')))
+            return core_name
+        elif system_bit == 'arm64':
+            core_name = wget.download('https://101.34.172.63/PC/ReWPF/core/JiJiDownCore-darwin-arm64',out=str(Path('resources/')))
+        #如果均不匹配下载amd64版本
+        core_name = wget.download('https://101.34.172.63/PC/ReWPF/core/JiJiDownCore-darwin-amd64',out=str(Path('resources/')))
+        return core_name
+    return 'error'
+
+# 更新核心
+def update_core(system_type:str,system_bit:str) -> str:
+    """
+    核心更新函数
+    """
+    global local_core#使用全局变量
+
+    local_core_list = find_core()#获取本地文件夹列表
+    b = []
+    for a in local_core_list:#查询本地核心是否存在
+        if 'JiJiDownCore-' in a :
+            b.append(a)
+    if len(b) > 1:#如果存在多于一个的核心
+        for a in b:#全部删除
+            Path.unlink(Path('resources/'+a))
+    elif len(b) == 1:#如果只有一个，设置本地核心路径为那一个
+        local_core = Path('resources/'+b[0])
+    if Path(local_core).exists():#如果只有一个
+        with open(local_core,'rb') as f:#获取本地核心sha265
+            sha265 = hashlib.sha256(f.read()).hexdigest()
+        cloud_sha265 = get_sha265()#获取云端sha265
+        for a in cloud_sha265:#对比sha265
+            if a[0] == sha265:
+                return '目前是最新版本'
+        for a in cloud_sha265:#sha265不匹配就查找相同名称的最新核心进行替换
+            if a[-1] == str(Path(local_core).name):
+                Path.unlink(local_core)#删除旧核心
+                core_name = wget.download('https://101.34.172.63/PC/ReWPF/core/'+str(Path(local_core).name),out=str(Path('resources/')))
+                return core_name+'已更新完成'
+    else:#如果没有核心
+        return_data = down_core(system_type,system_bit)#按平台下载核心
+        return return_data+'自动下载完成'
+
+# 生成配置文件
+def make_yaml():
+    if not Path(appdata+'/JiJiDown/config.yaml').exists():
+        with open(str(Path(appdata+'/JiJiDown/config.yaml')),'w') as f:#写入设置文件
+            f.write("""portable: false
+log-level: debug
+external-controller: 127.0.0.1:64000
+external-ui: ""
+secret: ""
+user-info:
+    raw-access-token: ""
+    raw-cookies: ""
+    hide-nickname: false
+download-task:
+    temp-dir: ""
+    download-dir: """+local_dir+"""
+    ffmpeg-path: ""
+    max-task: 2
+    download-speed-limit: 1
+    disable-mcdn: false
+jdm:
+    max-retry: 0
+    retry-wait: 0
+    jdm-task-workers: 0
+    session-workers: 0
+    min-split-size: 0
+    proxy-addr: ""
+    check-best-mirror: false
+    cache-in-ram: false
+    cache-in-ram-limit: 0
+    insecure-skip-verify: false
+    certs-file-path: ""
+""")
 
 # 获取下载目录
 def get_down_dir() -> str:
@@ -187,7 +315,6 @@ def change_down_dir(down_dir: str):
     json = {'dir': down_dir}
     post(base_url+'/jijidown/settings/set_download_dir', json)
 
-
 def ad() -> dict:
     """
     获取ad
@@ -197,7 +324,6 @@ def ad() -> dict:
     """
     data = get(base_url+"/jijidown/ad")
     return data['data']
-
 
 ################################################################### video info层
 
