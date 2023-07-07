@@ -1,0 +1,138 @@
+syntax = "proto3";
+
+package jijidown.core;
+
+option go_package = "github.com/JiJiDown/JiJiDownCore-go/common/jijidown";
+option csharp_namespace = "JiJiDown.Core.SDK";
+
+import "type/video.proto";
+import "type/api.proto";
+import "type/blinkresult.proto";
+
+// Bvideo
+service Bvideo {
+  // 效验输入的内容, 有效返回 BLinkResult
+  rpc CheckContent(BvideoContentReq) returns (BvideoCheckContentReply);
+  // 获取视频信息
+  rpc Info(BvideoContentReq) returns (BvideoInfoReply);
+  // 查找此视频所有支持的清晰度
+  rpc AllQuality(BvideoAllQualityReq) returns (BvideoAllQualityReply);
+}
+
+// Bvideo content 输入的内容-请求
+message BvideoContentReq {
+  // 输入的内容
+  string content = 1;
+}
+
+// 效验输入的内容, 有效返回 BLinkResult-回复
+message BvideoCheckContentReply {
+  // 数据有效
+  bool is_valid = 1;
+  // B站 URL 检测结果
+  BLinkResult blink_result = 2;
+}
+
+// 获取视频信息-回复
+message BvideoInfoReply {
+  // B站 URL 检测结果
+  BLinkResult blink_result = 1;
+  // 视频封面
+  bytes video_cover = 2;
+  // 视频标题
+  string video_title = 3;
+  // 视频文件名
+  string video_filename = 4;
+  // 描述
+  string video_desc = 5;
+  // 视频子类型
+  string sub_sort = 6;
+  // 视频类型
+  string sort = 7;
+  // UP主昵称
+  string up_name = 9;
+  // UP主 ID
+  int64 up_mid = 10;
+  // UP主头像
+  bytes up_face = 11;
+  // B站发布时间 番剧的字符串时间
+  string bili_pubdate_str = 12;
+  // 是否为互动视频
+  bool is_stein_gate = 13;
+  // 视频列表块
+  repeated BvideoBlock block = 14;
+}
+
+message BvideoBlock {
+  // 块标题
+  string block_title = 1;
+  // 视频列表
+  repeated BvideoPage list = 2;
+}
+
+message BvideoPage {
+  // av 号
+  int64 page_av = 1;
+  // BV 号
+  string page_bv = 2;
+  // cid
+  int64 page_cid = 3;
+  // page 索引
+  int32 page_index = 4;
+  // page 封面
+  bytes page_cover = 5;
+  // page 标题
+  string page_title = 6;
+  // page 信息 (发布时间, 视频时长)
+  repeated string page_info = 7;
+}
+
+// 查找此视频所有支持的清晰度-请求
+message BvideoAllQualityReq {
+  // aid
+  int64 aid = 1;
+  // bvid 和 aid 二个参数必传一个, bvid 优先级比 aid 高
+  string bvid = 2;
+  // cid
+  int64 cid = 3;
+}
+
+message BvideoBVideoItem {
+  // 清晰度 id
+  uint32 quality_id = 1;
+  // 清晰度文本 [e.g. 高清 1080P]
+  string quality_text = 2;
+  // 编码 [e.g. AVC]
+  VideoType codec = 3;
+  // 帧率 [e.g. 29.412 fps]
+  string frame_rate = 4;
+  // 比特率 [e.g. 525 kbps]
+  string bit_rate = 5;
+  // Stream 大小 [e.g. 15.92 MiB]
+  string stream_size = 6;
+  // item 来源 API
+  ApiType api_type = 7;
+}
+
+message BvideoBAudioItem {
+  // 清晰度 id
+  uint32 quality_id = 1;
+  // 清晰度文本 [e.g. 极高音质]
+  string quality_text = 2;
+  // 编码 [e.g. AAC]
+  string codec_text = 3;
+  // 比特率 [e.g. 321 kbps]
+  string bit_rate = 4;
+  // Stream 大小 [e.g. 9.74 MiB]
+  string stream_size = 5;
+  // item 来源 API
+  ApiType api_type = 6;
+}
+
+// 查找此视频所有支持的清晰度-回复
+message BvideoAllQualityReply {
+  // Video Stream
+  repeated BvideoBVideoItem video = 1;
+  // Audio Stream
+  repeated BvideoBAudioItem audio = 2;
+}

@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package jijidown.core;
+
+option go_package = "github.com/JiJiDown/JiJiDownCore-go/common/jijidown/types/servericonpb";
+option csharp_namespace = "JiJiDown.Core.SDK.Types";
+
+// 服务器系统 logo
+enum ServerIconType {
+  ServerIconType_ICON_UNKNOWN = 0;     // 未知系统
+  ServerIconType_ICON_WINDOWS_7 = 1;   // Windows 7
+  ServerIconType_ICON_WINDOWS_10 = 2;  // Windows 8/8.1/10/default
+  ServerIconType_ICON_WINDOWS_11 = 3;  // Windows 11
+
+  // Other Linux
+  ServerIconType_ICON_LINUX = 4;
+  ServerIconType_ICON_LINUX_DEBIAN = 5;          // Debian
+  ServerIconType_ICON_LINUX_RASPIOS = 6;         // Raspberry Pi OS
+  ServerIconType_ICON_LINUX_UBUNTU = 7;          // Ubuntu
+  ServerIconType_ICON_LINUX_FEDORA = 8;          // Fedora
+  ServerIconType_ICON_LINUX_RED_HAT = 9;         // Red Hat
+  ServerIconType_ICON_LINUX_CENTOS = 10;         // CentOS
+  ServerIconType_ICON_LINUX_CENTOS_STREAM = 11;  // CentOS Stream
+  ServerIconType_ICON_LINUX_ROCKY_LINUX = 12;    // Rocky Linux
+  ServerIconType_ICON_LINUX_ALMALINUX = 13;      // AlmaLinux
+  ServerIconType_ICON_LINUX_ARCH_LINUX = 14;     // Arch Linux
+
+  // Other macOS
+  ServerIconType_ICON_DARWIN = 15;
+  ServerIconType_ICON_DARWIN_HIGH_SIERRA = 16;  // High Sierra
+  ServerIconType_ICON_DARWIN_MOJAVE = 17;       // Mojave
+  ServerIconType_ICON_DARWIN_CATALINA = 18;     // Catalina
+  ServerIconType_ICON_DARWIN_BIG_SUR = 19;      // Big Sur
+  ServerIconType_ICON_DARWIN_MONTEREY = 20;     // Monterey
+  ServerIconType_ICON_DARWIN_VENTURA = 21;      // Ventura
+}

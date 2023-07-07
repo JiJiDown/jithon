@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+package jijidown.core;
+
+option go_package = "github.com/JiJiDown/JiJiDownCore-go/common/jijidown";
+option csharp_namespace = "JiJiDown.Core.SDK";
+
+import "google/protobuf/empty.proto";
+import "type/api.proto";
+import "type/video.proto";
+import "type/taskstatus.proto";
+import "type/taskdo.proto";
+
+// Task
+service Task {
+  // 创建新任务
+  rpc New(TaskNewReq) returns (TaskNewReply);
+  // 任务状态
+  rpc Status(TaskStatusReq) returns (stream TaskStatusReply);
+  // 任务控制 (暂停, 继续, 删除)
+  rpc Control(TaskControlReq) returns (google.protobuf.Empty);
+}
+
+// 创建新任务-请求
+message TaskNewReq {
+  // aid
+  int64 aid = 1;
+  // bvid 和 aid 二个参数必传一个, bvid 优先级比 aid 高
+  string bvid = 2;
+  // cid
+  int64 cid = 3;
+  // 视频质量
+  uint32 video_quality = 4;
+  // 音频质量
+  uint32 audio_quality = 5;
+  // 视频编码格式
+  VideoType video_codec = 6;
+  // 下载使用的 API (WEB / TV / APP)
+  ApiType api_type = 7;
+  // 保存文件名
+  string save_filename = 8;
+  // 仅下载音频
+  bool audio_only = 9;
+}
+
+// 创建新任务-回复
+message TaskNewReply {
+  // 任务 id
+  string task_id = 1;
+  // 视频清晰度
+  uint32 quality_video = 2;
+  // 音频清晰度
+  uint32 quality_audio = 3;
+}
+
+// 任务状态-请求
+message TaskStatusReq {
+  // 任务 id
+  string task_id = 1;
+}
+
+// 任务状态-回复
+message TaskStatusReply {
+  // 任务状态
+  TaskStatusType task_status = 1;
+  // 下载进度提示文本
+  string text = 2;
+  // 下载进度
+  uint32 progress = 3;
+  // 平均下载速度
+  string average_speed = 4;
+}
+
+// 任务控制 (暂停, 继续, 删除)-请求
+message TaskControlReq {
+  // 任务 id
+  string task_id = 1;
+  // 操作
+  TaskDo do = 2;
+}

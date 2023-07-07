@@ -1,0 +1,89 @@
+syntax = "proto3";
+
+package jijidown.core;
+
+option go_package = "github.com/JiJiDown/JiJiDownCore-go/common/jijidown";
+option csharp_namespace = "JiJiDown.Core.SDK";
+
+import "google/protobuf/empty.proto";
+
+// User
+service User {
+  // 获取用户信息
+  rpc Info(google.protobuf.Empty) returns (UserInfoReply);
+  // 获取登录二维码
+  rpc LoginQRCode(UserLoginQRCodeReq) returns (UserLoginQRCodeReply);
+  // 获取登录状态
+  rpc LoginStatus(UserLoginStatusReq) returns (stream UserLoginStatusReply);
+  // 导入 Cookie
+  rpc ImportCookie(UserImportCookieReq) returns (google.protobuf.Empty);
+}
+
+// 获取用户信息-回复
+message UserInfoReply {
+  // 是否登录
+  bool is_login = 1;
+  // 用户 id
+  int64 mid = 2;
+  // 用户昵称
+  string uname = 3;
+  // 用户头像
+  bytes face = 4;
+  // 会员开通状态
+  bool vip_status = 5;
+  // 会员名称
+  string vip_label_text = 6;
+}
+
+enum LoginQRCodeAPI {
+  LoginQRCodeAPI_WEB = 0;
+  LoginQRCodeAPI_TV = 1;
+}
+
+// 获取登录二维码-请求
+message UserLoginQRCodeReq {
+  LoginQRCodeAPI api = 1;
+}
+
+// 获取登录二维码-回复
+message UserLoginQRCodeReply {
+  // 二维码图片 []byte PNG
+  bytes qr_code = 1;
+  // uuid
+  string id = 2;
+}
+
+enum LoginStatus {
+  // 未知
+  LoginStatus_UNKNOWN = 0;
+  // 登录成功
+  LoginStatus_SUCCEEDED = 1;
+  // 二维码已失效
+  LoginStatus_EXPIRED = 2;
+  // 未扫码
+  LoginStatus_UNSCANNED = 3;
+  // 二维码已扫码未确认
+  LoginStatus_UNCONFIRMED = 4;
+}
+
+// 获取登录状态-请求
+message UserLoginStatusReq {
+  // uuid
+  string id = 1;
+}
+
+// 获取登录状态-回复
+message UserLoginStatusReply {
+  // 是否登录成功
+  bool login_successful = 1;
+  // 登录状态
+  LoginStatus status = 2;
+}
+
+// 导入 Cookie-请求
+message UserImportCookieReq {
+  // Cookies
+  string cookies = 1;
+  // AccessToken
+  string access_token = 2;
+}

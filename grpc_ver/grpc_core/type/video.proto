@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package jijidown.core;
+
+option go_package = "github.com/JiJiDown/JiJiDownCore-go/common/jijidown/types/videopb";
+option csharp_namespace = "JiJiDown.Core.SDK.Types";
+
+// 视频/音频编码
+enum VideoType {
+  // 未知
+  VideoType_UNKNOWN = 0;
+  // AVC (H.264) 编码
+  VideoType_AVC = 1;
+  // HEVC (H.265) 编码
+  VideoType_HEVC = 2;
+  // AV1 编码
+  VideoType_AV1 = 3;
+}

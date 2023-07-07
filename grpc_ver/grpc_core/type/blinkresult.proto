@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package jijidown.core;
+
+option go_package = "github.com/JiJiDown/JiJiDownCore-go/common/jijidown/types/blinkresultpb";
+option csharp_namespace = "JiJiDown.Core.SDK.Types";
+
+// B站 URL 检测结果
+message BLinkResult {
+  // 解析出来的 ID 数据 (AV号, ep号, up号)
+  int64 id = 1;
+  // 短标记 (av10086, ep317925, up116683)
+  string mark = 2;
+  // 前往 B站 原始链接
+  string web_link = 3;
+}

@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package jijidown.core;
+
+option go_package = "github.com/JiJiDown/JiJiDownCore-go/common/jijidown/types/apipb";
+option csharp_namespace = "JiJiDown.Core.SDK.Types";
+
+// API 接口
+enum ApiType {
+  // WEB 接口
+  ApiType_WEB = 0;
+  // TV 接口
+  ApiType_TV = 1;
+  // APP 接口
+  ApiType_APP = 2;
+}

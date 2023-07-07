@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package jijidown.core;
+
+option go_package = "github.com/JiJiDown/JiJiDownCore-go/common/jijidown/types/taskdopb";
+option csharp_namespace = "JiJiDown.Core.SDK.Types";
+
+// 任务操作
+enum TaskDo {
+  TaskDo_NOTHING = 0;          // 什么也不做
+  TaskDo_PAUSE = 1;            // 暂停
+  TaskDo_RESUME = 2;           // 继续
+  TaskDo_DELETE = 3;           // 仅删除任务
+  TaskDo_DELETE_AND_FILE = 4;  // 删除任务和本地文件
+}

@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package jijidown.core;
+
+option go_package = "github.com/JiJiDown/JiJiDownCore-go/common/jijidown/types/updatestatuspb";
+option csharp_namespace = "JiJiDown.Core.SDK.Types";
+
+// 检查更新状态
+enum UpdateStatusType {
+  CHECKING = 0;          // 检查中 / 下载更新
+  NOTSUPPORTUPDATE = 1;  // 不支持自动更新
+  UPTODATE = 2;          // 已经是最新版本
+  NEEDUPDATE = 3;        // 需要更新
+}

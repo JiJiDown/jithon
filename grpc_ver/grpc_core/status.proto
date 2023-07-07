@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package jijidown.core;
+
+option go_package = "github.com/JiJiDown/JiJiDownCore-go/common/jijidown";
+option csharp_namespace = "JiJiDown.Core.SDK";
+
+import "google/protobuf/empty.proto";
+import "type/servericon.proto";
+import "type/updatestatus.proto";
+
+// Status
+service Status {
+  // 检查服务器是否在线
+  rpc Ping(google.protobuf.Empty) returns (StatusPingPong);
+  // 检查更新
+  rpc CheckUpdate(google.protobuf.Empty) returns (stream StatusCheckUpdateReply);
+}
+
+// 检查服务器是否在线-回复
+message StatusPingPong {
+  // 服务器名称
+  string server_name = 1;
+  // 操作系统 logo
+  ServerIconType os_icon = 2;
+  // 操作系统名称
+  string os_system_name = 3;
+}
+
+// 检查更新-回复
+message StatusCheckUpdateReply {
+  // 更新状态
+  UpdateStatusType status = 1;
+  // Changelog
+  string change_log = 2;
+}

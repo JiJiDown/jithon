@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package jijidown.core;
+
+option go_package = "github.com/JiJiDown/JiJiDownCore-go/common/jijidown/types/taskstatuspb";
+option csharp_namespace = "JiJiDown.Core.SDK.Types";
+
+// 任务状态
+enum TaskStatusType {
+  TaskStatusType_TASK_ERROR = 0;     // 任务错误
+  TaskStatusType_TASK_PAUSE = 1;     // 任务暂停
+  TaskStatusType_TASK_RUNNING = 2;   // 任务运行
+  TaskStatusType_TASK_WAIT = 3;      // 任务等待
+  TaskStatusType_TASK_MERGEING = 4;  // 任务正在进行合并
+  TaskStatusType_TASK_GENMUSIC = 5;  // 任务正在提取MP3
+  TaskStatusType_TASK_COMPLETE = 6;  // 任务完成
+}
