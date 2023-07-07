@@ -471,7 +471,7 @@ def post_new_task(avid:int,cid:int,video_quality_data:dict,audio_quality_data:di
             "video_filename": video_filename
             }
     data = post(base_url+'/task/post_new_task',json)
-    download_danmaku(avid,cid,video_filename)#下载弹幕
+    download_danmaku(avid,cid,str(video_filename))#下载弹幕
     return data
 
 #下载弹幕
