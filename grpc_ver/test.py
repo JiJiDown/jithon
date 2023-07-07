@@ -55,11 +55,8 @@ def rund():
     channel = grpc.insecure_channel('localhost:64000')
     stub = bvideo_pb2_grpc.BvideoStub(channel)
     response = stub.Info(bvideo_pb2.BvideoContentReq(content='https://www.bilibili.com/video/BV1us4y167zF/?spm_id_from=333.1007.tianma.1-3-3.click&vd_source=32f2f4d0d74594e0b5a183b394bf9a49'),metadata=[('client_sdk','JiJiDownPython/1.0.0')])
-    response = stub.Info(bvideo_pb2.BvideoAllQualityReq(bvid=response.block[0].list[0].page_bv,cid=response.block[0].list[0].page_cid),metadata=[('client_sdk','JiJiDownPython/1.0.0')])
-    print(response.video)
-    print(response.audio)
-    for d in response.video:
-        print(d.quality_text)
+    response = stub.AllQuality(bvideo_pb2.BvideoAllQualityReq(aid=response.block[0].list[0].page_av,cid=response.block[0].list[0].page_cid),metadata=[('client_sdk','JiJiDownPython/1.0.0')])
+
 
     print
 

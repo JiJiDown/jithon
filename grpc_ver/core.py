@@ -419,6 +419,7 @@ def info(url: str) -> dict:
     with bvideo_pb2_grpc.BvideoStub(channel) as stub:
         #error code 10 ABORTED
         try:
+            logger.debug('发送视频信息查询 {}',url)# log
             response = stub.Info(bvideo_pb2.BvideoContentReq(content=url))
             info_list = {
                 'error':False,
@@ -453,7 +454,11 @@ def quality(bvid:int, cid:int) -> dict:
     av 为视频AV号 cid 为分P的id
     """
     # 获取指定分P清晰度
-    one_video_info = get(base_url+'/bili/1/'+str(av) +'/'+str(cid)+'/get_video_quality')
+    #one_video_info = get(base_url+'/bili/1/'+str(av) +'/'+str(cid)+'/get_video_quality')
+    with bvideo_pb2_grpc.BvideoStub(channel) as stub:
+        logger.debug('发送清晰度查询 bvid={} cid={}',bvid,cid)# log
+        response = stub.AllQuality(bvideo_pb2.BvideoAllQualityReq(bvid=bvid,cid=cid),metadata=metadata)
+
     one_video_info = one_video_info['data']['list']
 
     new_video_info = {}  # 新建分辨率排序
@@ -466,7 +471,7 @@ def quality(bvid:int, cid:int) -> dict:
     new_video_info['video']['TV'] = []
     new_video_info['video']['APP'] = []
 
-    for quality in one_video_info:  # 分类
+    for quality in response.video:  # 视频分类
         quality = code(quality)
         if quality["api_type"] == 0:
             if quality["is_audio"] == True:
