@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-import bvideo_pb2 as bvideo__pb2
+from grpc_core import bvideo_pb2 as bvideo__pb2
 
 
 class BvideoStub(object):

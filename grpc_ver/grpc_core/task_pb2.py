@@ -12,10 +12,10 @@ _sym_db = _symbol_database.Default()
 
 
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
-from type import api_pb2 as type_dot_api__pb2
-from type import video_pb2 as type_dot_video__pb2
-from type import taskstatus_pb2 as type_dot_taskstatus__pb2
-from type import taskdo_pb2 as type_dot_taskdo__pb2
+from grpc_core.type import api_pb2 as type_dot_api__pb2
+from grpc_core.type import video_pb2 as type_dot_video__pb2
+from grpc_core.type import taskstatus_pb2 as type_dot_taskstatus__pb2
+from grpc_core.type import taskdo_pb2 as type_dot_taskdo__pb2
 
 
 DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\ntask.proto\x12\rjijidown.core\x1a\x1bgoogle/protobuf/empty.proto\x1a\x0etype/api.proto\x1a\x10type/video.proto\x1a\x15type/taskstatus.proto\x1a\x11type/taskdo.proto\"\xe6\x01\n\nTaskNewReq\x12\x0b\n\x03\x61id\x18\x01 \x01(\x03\x12\x0c\n\x04\x62vid\x18\x02 \x01(\t\x12\x0b\n\x03\x63id\x18\x03 \x01(\x03\x12\x15\n\rvideo_quality\x18\x04 \x01(\r\x12\x15\n\raudio_quality\x18\x05 \x01(\r\x12-\n\x0bvideo_codec\x18\x06 \x01(\x0e\x32\x18.jijidown.core.VideoType\x12(\n\x08\x61pi_type\x18\x07 \x01(\x0e\x32\x16.jijidown.core.ApiType\x12\x15\n\rsave_filename\x18\x08 \x01(\t\x12\x12\n\naudio_only\x18\t \x01(\x08\"M\n\x0cTaskNewReply\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\x15\n\rquality_video\x18\x02 \x01(\r\x12\x15\n\rquality_audio\x18\x03 \x01(\r\" \n\rTaskStatusReq\x12\x0f\n\x07task_id\x18\x01 \x01(\t\"|\n\x0fTaskStatusReply\x12\x32\n\x0btask_status\x18\x01 \x01(\x0e\x32\x1d.jijidown.core.TaskStatusType\x12\x0c\n\x04text\x18\x02 \x01(\t\x12\x10\n\x08progress\x18\x03 \x01(\r\x12\x15\n\raverage_speed\x18\x04 \x01(\t\"D\n\x0eTaskControlReq\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12!\n\x02\x64o\x18\x02 \x01(\x0e\x32\x15.jijidown.core.TaskDo2\xd1\x01\n\x04Task\x12=\n\x03New\x12\x19.jijidown.core.TaskNewReq\x1a\x1b.jijidown.core.TaskNewReply\x12H\n\x06Status\x12\x1c.jijidown.core.TaskStatusReq\x1a\x1e.jijidown.core.TaskStatusReply0\x01\x12@\n\x07\x43ontrol\x12\x1d.jijidown.core.TaskControlReq\x1a\x16.google.protobuf.EmptyBIZ3github.com/JiJiDown/JiJiDownCore-go/common/jijidown\xaa\x02\x11JiJiDown.Core.SDKb\x06proto3')

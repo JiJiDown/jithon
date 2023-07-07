@@ -3,7 +3,7 @@
 import grpc
 
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
-import task_pb2 as task__pb2
+from grpc_core import task_pb2 as task__pb2
 
 
 class TaskStub(object):

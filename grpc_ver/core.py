@@ -5,6 +5,8 @@ from base64 import b64decode  # 二维码编码
 from pathlib import Path #路径库
 import hashlib#sha256加密库
 
+from loguru import logger#日志库
+
 import wget
 import requests
 
@@ -32,11 +34,13 @@ base_url = "http://127.0.0.1:64000"  # 默认端口
 local_dir = str(Path.cwd())  # 默认下载地址
 appdata = os.getenv('APPDATA')  # 获取系统变量
 channel = grpc.insecure_channel(base_url)#启动grpc
+logger.info('启动grpc,地址为{}',base_url)# log
 metadata = [('client_sdk','JiJiDownPython/1.0.0')]#设置sdk
+logger.info('设置SDK')# log
 Path(local_dir+'/resources').mkdir(parents=True,exist_ok=True)  # 创建核心文件夹
 Path(local_dir+'/temp').mkdir(parents=True,exist_ok=True)# 创建临时文件夹
 Path(appdata+'/JiJiDown').mkdir(parents=True,exist_ok=True)# 创建jijidown配置文件夹
-
+logger.info('设置路径')
 
 #检查核心是否启动
 def check() -> str:
@@ -213,7 +217,12 @@ def get_qr_status(id:str):
     """
     with user_pb2_grpc.UserStub(channel) as stub:
         response = stub.LoginStatus(user_pb2.UserLoginStatusReq(id=id),metadata=metadata)
-        
+        for one in response:#迭代器
+            status = one.status#登录状态
+            #TODO
+            login_successful = one.login_successful#登录是否成功
+            if login_successful or status == 1:#登陆成功
+                return {'code':1}
 
 ############################################################ Jiji层
 
@@ -371,52 +380,74 @@ def ad() -> dict:
 ################################################################### video info层
 
 #获取视频信息
-def info(type: int, id: str) -> dict:
+def info(url: str) -> dict:
     """
-    获取不同类型的视频信息
-    1为AV类型 2 为BV类型 3为EP类型 4为SS类型 5为MEDIA类型 6为UP类型 7为FAV类型 8为UP主合集 9为UP主列表
-    返回信息示例
-    {
-        "code": 0,
-        "message": "",
-        "data": {
-                "id": 247906246,
-                "link_type": 1,
-                "video_cover": "http://i1.hdslb.com/bfs/archive/34f668b39d9ce216a644c79df8ddc70ad1b61c8c.jpg",
-                "video_title": "完全疯了！清凉水手妹「So Crazy」甜蜜夏日！",
-                "video_filename": "完全疯了！清凉水手妹「So Crazy」甜蜜夏日！",
-                "video_desc": "歌曲&舞蹈：T-ara -so crazy\n摄影：亚特兰\n后期：面面桑，M子\n后勤：凌柒",
-                "sub_sort": "明星舞蹈",
-                "sort": "舞蹈",
-                "up_name": "早上好七七",
-                "up_mid": 1851105,
-                "up_face": "https://i0.hdslb.com/bfs/face/111ea36c816eb52385d566e5d38221c960c255a0.jpg",
-                "bili_pubdate_str": "2021-05-03 19:20:12",
-                "is_stein_gate": false,
-                "list": [
-                        {
-                                "page_av": 247906246,
-                                "page_bv": "BV1sv411j7F8",
-                                "page_cid": 332978921,
-                                "duration": 106,
-                                "page": 1,
-                                "page_name": "1.完全疯了！清凉水手妹「So Crazy」甜蜜夏日！",
-                                "page_title": "so crazy",
-                                "video_title": "完全疯了！清凉水手妹「So Crazy」甜蜜夏日！",
-                                "video_filename": "完全疯了！清凉水手妹「So Crazy」甜蜜夏日！ - 1.so crazy",
-                                "is_bangumi": false
-                        }
-                ]
-        }
-}
+    获取视频信息
+    bool error 是否出现错误
+    msg 错误信息
+    error_value 错误状态码
+    error_name 错误类型
+
+    // B站 URL 检测结果
+    BLinkResult blink_result = 1;
+    // 视频封面
+    bytes video_cover = 2;
+    // 视频标题
+    string video_title = 3;
+    // 视频文件名
+    string video_filename = 4;
+    // 描述
+    string video_desc = 5;
+    // 视频子类型
+    string sub_sort = 6;
+    // 视频类型
+    string sort = 7;
+    // UP主昵称
+    string up_name = 9;
+    // UP主 ID
+    int64 up_mid = 10;
+    // UP主头像
+    bytes up_face = 11;
+    // B站发布时间 番剧的字符串时间
+    string bili_pubdate_str = 12;
+    // 是否为互动视频
+    bool is_stein_gate = 13;
+    // 视频列表块
+    repeated BvideoBlock block = 14;
     """
-    data = get(base_url+'/bili/'+str(type)+'/'+str(id)+'/get_video_info')
-    return data
+    #data = get(base_url+'/bili/'+str(type)+'/'+str(id)+'/get_video_info')
+    with bvideo_pb2_grpc.BvideoStub(channel) as stub:
+        #error code 10 ABORTED
+        try:
+            response = stub.Info(bvideo_pb2.BvideoContentReq(content=url))
+            info_list = {
+                'error':False,
+                'blink_result':response.blink_result,
+                'video_cover':response.video_cover,
+                'video_title':response.video_title,
+                'video_filename':response.video_filename,
+                'video_desc':response.video_desc,
+                'sub_sort':response.sub_sort,
+                'sort':response.sort,
+                'up_name':response.up_name,
+                'up_mid':response.up_mid,
+                'up_face':response.up_face,
+                'bili_pubdate_str':response.bili_pubdate_str,
+                'is_stein_gate':response.is_stein_gate,
+                'block':response.block
+                }
+        except Exception as e:#出现grpc异常
+            code_name = e.code().name# 错误类型
+            code_value = e.code().value
+            logger.error('出现错误 '+e.details())# log
+            logger.error('错误类型 '+code_name)
+            return {'error':True,'msg':e.details(),'error_value':code_value[0],'error_name':code_name}
+    return info_list
 
 ################################################################## video quality层
 
 # 获取分辨率
-def quality(av:int, cid:int) -> dict:
+def quality(bvid:int, cid:int) -> dict:
     """
     获取视频清晰度
     av 为视频AV号 cid 为分P的id
