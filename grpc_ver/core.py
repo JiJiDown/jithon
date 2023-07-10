@@ -21,7 +21,7 @@ from grpc_core import status_pb2_grpc
 from grpc_core import bvideo_pb2
 from grpc_core import bvideo_pb2_grpc
 
-
+import google.protobuf.empty_pb2 as empty_pb2
 # 初始化
 local_core = str(Path('resources/JiJiDownCore-win64.exe').resolve())
 local_time = time.strftime("%y/%m/%d", time.localtime())
@@ -30,7 +30,7 @@ headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
 }
 
-base_url = "http://127.0.0.1:64000"  # 默认端口
+base_url = "localhost:64000"  # 默认端口
 local_dir = str(Path.cwd())  # 默认下载地址
 appdata = os.getenv('APPDATA')  # 获取系统变量
 channel = grpc.insecure_channel(base_url)#启动grpc
@@ -45,21 +45,15 @@ logger.info('设置路径')
 #检查核心是否启动
 def check() -> str:
     """
-    检查核心是否启动
+    检查服务是否正常
     """
-    try:
-        # cj = {i.split("=")[0]:i.split("=")[1] for i in cookies.split(";")}
-        response: dict = requests.get(url=base_url+"/jijidown/settings/get_download_dir", headers={
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.93 Safari/537.36",
-            "accept": "application/json, text/plain, */*",
-            "accept-encoding": "gzip, deflate, br",
-            "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
-            "origin": "https://space.bilibili.com"
-        },timeout=5)
-        if response.status_code == 200:
-            return 'ok'
-        return 'error'
-    except:
+    #try:
+    stub = bvideo_pb2_grpc.BvideoStub(channel)
+    response = stub.CheckContent(bvideo_pb2.BvideoContentReq(content='https://www.bilibili.com/video/av170001'),metadata=metadata)
+    if response.is_valid:
+        logger.debug('服务一切正常')
+        return 'ok'
+    else:
         return 'error'
 
 #添加编码信息
@@ -82,75 +76,15 @@ def code(keys):
 def dic(info):
     new_list = []#创建临时列表
     for a in info:
-        new_list.append(a["quality"])
+        new_list.append(a["quality_id"])
     new_list.sort(reverse = True)#列表排序从大到小
     new_info = []
     for b in new_list:
         for c in info:
-            if c["quality"] == b:
+            if c["quality_id"] == b:
                 new_info.append(c)
     return new_info
 
-# 浏览器请求函数
-def get(url: str) -> dict:
-    """
-    请求数据
-    """
-    try:
-        # cj = {i.split("=")[0]:i.split("=")[1] for i in cookies.split(";")}
-        response: dict = brower.get(url=url, headers={
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.93 Safari/537.36",
-            "accept": "application/json, text/plain, */*",
-            "accept-encoding": "gzip, deflate, br",
-            "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
-            "origin": "https://space.bilibili.com"
-        }).json()
-        return response
-    except:
-        print('核心未启动,尝试重新访问核心')
-        time.sleep(1)
-        get(url)
-
-# 浏览器发送函数
-def post(url: str, json: str) -> dict:
-    """
-    发送json格式信息
-    """
-    response = brower.post(url=url, json=json, headers={
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.93 Safari/537.36",
-        "accept": "application/json, text/plain, */*",
-        "accept-encoding": "gzip, deflate, br",
-        "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
-        "origin": "https://space.bilibili.com"
-    }).json()
-    return response
-
-# 浏览器发送函数
-def patch(url: str) -> dict:
-    """
-    发送patch信息
-    """
-    response = brower.patch(url=url, headers={
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.93 Safari/537.36",
-        "accept": "application/json, text/plain, */*",
-        "accept-encoding": "gzip, deflate, br",
-        "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
-        "origin": "https://space.bilibili.com"
-    }).json()
-    return response
-
-def delete(url: str) -> dict:
-    """
-    发送patch信息
-    """
-    response = brower.delete(url=url, headers={
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.93 Safari/537.36",
-        "accept": "application/json, text/plain, */*",
-        "accept-encoding": "gzip, deflate, br",
-        "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
-        "origin": "https://space.bilibili.com"
-    }).json()
-    return response
 ############################################################ User层
 
 # 获取登录状态
@@ -161,15 +95,18 @@ def get_user_info() -> dict:
     mid = int 用户mid
     is_login = bool 登陆状态
     uname = str 用户名
-    face = str 用户头像url
+    face = bytes 用户头像
     vip_status = bool 大会员登陆状态
     vip_label_text = str 大会员状态
+    badge = str 头衔
     """
     #data: dict = get(base_url+'/bili/user/get_user_info')
-    with user_pb2_grpc.UserStub(channel) as stub:
-        try:
+    stub = user_pb2_grpc.UserStub(channel)
+    logger.debug('尝试获取用户登录状态')# log
+    try:
             response = stub.Info(user_pb2.UserInfoReply(),metadata=metadata)
-        except:
+    except:
+            logger.debug('用户未登录')# log
             return {'code': False}# 返回状态
     mid: int = response.mid  # 用户mid
     is_login: bool = response.is_login  # 登录状态
@@ -177,7 +114,8 @@ def get_user_info() -> dict:
     face: bytes = response.face  # 保存用户头像(二进制png的图片)
     vip_status: bool = response.vip_status  # 大会员登录状态
     vip_label_text: str = response.vip_label_text  # 大会员状态（年度大会员等）
-    return {'code': True, 'mid': mid, 'is_login': is_login, 'uname': uname, 'face': face, 'vip_status': vip_status, 'vip_label_text': vip_label_text}
+    badge:str = response.badge  # 头衔
+    return {'code': True, 'mid': mid, 'is_login': is_login, 'uname': uname, 'face': face, 'vip_status': vip_status, 'vip_label_text': vip_label_text,'badge':badge}
 
 # 获取登录二维码
 def get_login_status(api:int) -> dict:
@@ -191,10 +129,11 @@ def get_login_status(api:int) -> dict:
     """
 
     #data = get(base_url+'/bili/user/tv/get_login_status')
-    with user_pb2_grpc.UserStub(channel) as stub:
-        try:
-            response = stub.Info(user_pb2.UserLoginQRCodeReq(api=0),metadata=metadata)
-        except:#已登录
+    stub = user_pb2_grpc.UserStub(channel)
+    try:
+            response = stub.Info(user_pb2.UserLoginQRCodeReq(api=api),metadata=metadata)
+    except Exception as e:#已登录
+            logger.debug('用户已登录')
             return {'code': 0}
     login_image:bytes = response.qr_code  # 登录用二维码(二进制png)
     return {'code': 1,'image':login_image,'id':response.id}
@@ -215,14 +154,19 @@ def get_qr_status(id:str):
     // 二维码已扫码未确认
     LoginStatus_UNCONFIRMED = 4;
     """
-    with user_pb2_grpc.UserStub(channel) as stub:
-        response = stub.LoginStatus(user_pb2.UserLoginStatusReq(id=id),metadata=metadata)
-        for one in response:#迭代器
+    stub = user_pb2_grpc.UserStub(channel)
+    logger.debug('获取扫码状态')
+    response = stub.LoginStatus(user_pb2.UserLoginStatusReq(id=id),metadata=metadata)
+    for one in response:#迭代器
             status = one.status#登录状态
             #TODO
             login_successful = one.login_successful#登录是否成功
             if login_successful or status == 1:#登陆成功
                 return {'code':1}
+            elif status == 2:#二维码失效
+                return {'code':2}
+            elif status == 0:#未知
+                return {'code':0}
 
 ############################################################ Jiji层
 
@@ -231,7 +175,7 @@ def get_sha265() -> dict:
     """
     获取最新的服务器上存储的sha265
     """
-    cloud_hash = brower.get('https://101.34.172.63/PC/ReWPF/core/JiJiDownCore-hash.txt').text#获取云端最新核心信息
+    cloud_hash = brower.get('http://101.34.172.63/PC/ReWPF/core/JiJiDownCore-hash.txt').text#获取云端最新核心信息
     cloud_hash = cloud_hash.split()
     fin = []
     for a in cloud_hash:
@@ -355,7 +299,7 @@ def get_down_dir() -> str:
     """
     返回下载目录
     """
-    data = get(base_url+"/jijidown/settings/get_download_dir")
+    #data = get(base_url+"/jijidown/settings/get_download_dir")
     data = data['data']
     return data['dir']
 
@@ -365,7 +309,7 @@ def change_down_dir(down_dir: str):
     修改下载目录
     """
     json = {'dir': down_dir}
-    post(base_url+'/jijidown/settings/set_download_dir', json)
+    #post(base_url+'/jijidown/settings/set_download_dir', json)
 
 def ad() -> dict:
     """
@@ -374,8 +318,8 @@ def ad() -> dict:
     url = str 链接
     img = str 图片内容，转成bit进行显示
     """
-    data = get(base_url+"/jijidown/ad")
-    return data['data']
+    #data = get(base_url+"/jijidown/ad")
+    #return data['data']
 
 ################################################################### video info层
 
@@ -416,11 +360,14 @@ def info(url: str) -> dict:
     repeated BvideoBlock block = 14;
     """
     #data = get(base_url+'/bili/'+str(type)+'/'+str(id)+'/get_video_info')
-    with bvideo_pb2_grpc.BvideoStub(channel) as stub:
+    stub = bvideo_pb2_grpc.BvideoStub(channel)
         #error code 10 ABORTED
-        try:
+    try:
             logger.debug('发送视频信息查询 {}',url)# log
-            response = stub.Info(bvideo_pb2.BvideoContentReq(content=url))
+            response = stub.Info(bvideo_pb2.BvideoContentReq(content=url),metadata=metadata)
+            list = []
+            for a in response.block:#遍历每一页的视频
+                list += a.list
             info_list = {
                 'error':False,
                 'blink_result':response.blink_result,
@@ -435,9 +382,10 @@ def info(url: str) -> dict:
                 'up_face':response.up_face,
                 'bili_pubdate_str':response.bili_pubdate_str,
                 'is_stein_gate':response.is_stein_gate,
-                'block':response.block
+                'block':response.block,
+                'list':list
                 }
-        except Exception as e:#出现grpc异常
+    except Exception as e:#出现grpc异常
             code_name = e.code().name# 错误类型
             code_value = e.code().value
             logger.error('出现错误 '+e.details())# log
@@ -446,20 +394,41 @@ def info(url: str) -> dict:
     return info_list
 
 ################################################################## video quality层
+def enchange(data,type):
+    return_data = {}
+    return_data['quality_id']:int = int(data.quality_id)
+    return_data['quality_text']:str = data.quality_text
+    if type == 0:
+        return_data['codec']:str = data.codec
+    else:
+        return_data['codec']:str = data.codec_text
+    if type == 0:
+        return_data['frame_rate']:str = data.frame_rate
+    return_data['bit_rate']:str = data.bit_rate
+    return_data['stream_size']:str = data.stream_size
+    return_data['api_type']:int = data.api_type
+    return return_data
 
 # 获取分辨率
-def quality(bvid:int, cid:int) -> dict:
+def quality(bvid:str, cid:int) -> dict:
     """
     获取视频清晰度
     av 为视频AV号 cid 为分P的id
     """
     # 获取指定分P清晰度
     #one_video_info = get(base_url+'/bili/1/'+str(av) +'/'+str(cid)+'/get_video_quality')
-    with bvideo_pb2_grpc.BvideoStub(channel) as stub:
-        logger.debug('发送清晰度查询 bvid={} cid={}',bvid,cid)# log
-        response = stub.AllQuality(bvideo_pb2.BvideoAllQualityReq(bvid=bvid,cid=cid),metadata=metadata)
 
-    one_video_info = one_video_info['data']['list']
+    stub = bvideo_pb2_grpc.BvideoStub(channel)
+    logger.debug('发送清晰度查询 bvid={} cid={}',bvid,cid)# log
+    #try:
+    response = stub.AllQuality(bvideo_pb2.BvideoAllQualityReq(bvid=bvid,cid=cid),metadata=metadata)
+    #except Exception as e:#出现grpc异常
+        #code_name = e.code().name# 错误类型
+        #code_value = e.code().value
+        #logger.error('出现错误 '+e.details())# log
+        #logger.error('错误类型 '+code_name)# log
+        #return
+
 
     new_video_info = {}  # 新建分辨率排序
     new_video_info['audio'] = {}
@@ -472,30 +441,32 @@ def quality(bvid:int, cid:int) -> dict:
     new_video_info['video']['APP'] = []
 
     for quality in response.video:  # 视频分类
-        quality = code(quality)
-        if quality["api_type"] == 0:
-            if quality["is_audio"] == True:
-                new_video_info['audio']['WEB'].append(quality)
-                continue
-            if quality["is_video"] == True:
-                new_video_info['video']['WEB'].append(quality)
-                continue
+        quality = code(enchange(quality,type=0))
+        if quality['api_type'] == 0:
+            new_video_info['video']['WEB'].append(quality)
+            continue
 
-        if quality["api_type"] == 1:
-            if quality["is_audio"] == True:
-                new_video_info['audio']['TV'].append(quality)
-                continue
-            if quality["is_video"] == True:
-                new_video_info['video']['TV'].append(quality)
-                continue
+        if quality['api_type'] == 1:
+            new_video_info['video']['TV'].append(quality)
+            continue
 
-        if quality["api_type"] == 2:
-            if quality["is_audio"] == True:
-                new_video_info['audio']['APP'].append(quality)
-                continue
-            if quality["is_video"] == True:
-                new_video_info['video']['APP'].append(quality)
-                continue
+        if quality['api_type'] == 2:
+            new_video_info['video']['APP'].append(quality)
+            continue
+
+    for quality in response.audio:  # 视频分类
+        quality = code(enchange(quality,type=1))
+        if quality['api_type'] == 0:
+            new_video_info['audio']['WEB'].append(quality)
+            continue
+
+        if quality['api_type'] == 1:
+            new_video_info['audio']['TV'].append(quality)
+            continue
+
+        if quality['api_type'] == 2:
+            new_video_info['audio']['APP'].append(quality)
+            continue
 
     # 排序
     new_video_info['audio']['WEB'] = dic(new_video_info['audio']['WEB'])
@@ -510,66 +481,53 @@ def quality(bvid:int, cid:int) -> dict:
 ################################################################## 任务管理层
 
 #创建下载任务
-def post_new_task(avid:int,cid:int,video_quality_data:dict,audio_quality_data:dict,video_filename:str) -> dict:
+def post_new_task(bvid:int,cid:int,video_quality:int,audio_quality:int,video_codec:str,api_type:int,save_filename:str,audio_only:bool) -> dict:
     """
     video_quality为1000时使用默认最高分辨率下载
     以下参数仅在video_quality不等于1000时生效
     api_type 指示使用的下载接口,在1000时默认走WEB接口
 
-    UseAV = true  使用B站AV号处理
-    UseAV = false 不使用B站AV号处理
-
+    返回 data['task_id']
     """
-    video_quality = video_quality_data['quality']
-    audio_quality = audio_quality_data['quality']
-    if video_quality != 1000:
-        api_type = video_quality_data['api_type']
-        video_codecs = video_quality_data['codec']
-        json={
-                "avid": avid,
-                "cid": cid,
-                "video_quality": video_quality,
-                "audio_quality": audio_quality,
-                "api_type": api_type,
-                "useav": True,
-                "useflv": False,
-                "video_codecs": video_codecs,
-                "video_filename": video_filename
-            }
-    else:
-        json={
-            "avid": avid,
-            "cid": cid,
-            "video_quality": 1000,
-            "useav": True,
-            "useflv": False,
-            "video_codecs": 1,#TODO 这里以后增加选择项，默认使用什么编码
-            "video_filename": video_filename
-            }
-    data = post(base_url+'/task/post_new_task',json)
-    download_danmaku(avid,cid,video_filename)#下载弹幕
+    stub = task_pb2_grpc.TaskStub(channel)
+    #data = post(base_url+'/task/post_new_task',json)
+    response = stub.New(task_pb2.TaskNewReq(bvid=bvid,cid=cid,video_quality=video_quality,audio_quality=audio_quality,video_codec=video_codec,api_type=api_type,save_filename=save_filename,audio_only=audio_only),metadata=metadata)
+    data = {}
+    data['task_id'] = response.task_id
+    data['quality_video'] =response.quality_video
+    data['quality_audio'] = response.quality_audio
+
+    #download_danmaku(avid,cid,video_filename)#下载弹幕
     return data
 
 #下载弹幕
 def download_danmaku(avid:int,cid:int,video_filename:str):
-    return_data = get(base_url+'/danmaku/'+avid+'/'+cid+'/download_danmaku?file='+video_filename)
+    #return_data = get(base_url+'/danmaku/'+avid+'/'+cid+'/download_danmaku?file='+video_filename)
+    pass
 
 #获取下载任务进度
 def get_task_status(control_name:str):
-    return_data = get(base_url+'/task/'+control_name+'/get_task_status')
-    return return_data['data']
+    #return_data = get(base_url+'/task/'+control_name+'/get_task_status')
+    #return return_data['data']
+    pass
 
 #暂停任务
-def patch_pause_task(control_name:str):
-    return_data = patch(base_url+'/task/'+control_name+'/patch_pause_task')
+def patch_pause_task(task_id:str):
+    stub = task_pb2_grpc.TaskStub(channel)
+    response = stub.TaskControlReq(task_id=task_id,do='TaskDo_PAUSE')
+    #return_data = patch(base_url+'/task/'+control_name+'/patch_pause_task')
 
 #继续任务
-def patch_resume_task(control_name:str):
-    return_data = patch(base_url+'/task/'+control_name+'/patch_resume_task')
+def patch_resume_task(task_id:str):
+    stub = task_pb2_grpc.TaskStub(channel)
+    response = stub.TaskControlReq(task_id=task_id,do='TaskDo_RESUME')
+    #return_data = patch(base_url+'/task/'+control_name+'/patch_resume_task')
 
 #删除任务和文件
-def delete_task(control_name:str):
-    return_data = patch(base_url+'/task/'+control_name+'/delete_task_and_file')
+def delete_task(task_id:str):
+    stub = task_pb2_grpc.TaskStub(channel)
+    response = stub.TaskControlReq(task_id=task_id,do='TaskDo_DELETE_AND_FILE')
+    #return_data = patch(base_url+'/task/'+control_name+'/delete_task_and_file')
 
 #读取json中的下载列表
 def load_json() -> dict:

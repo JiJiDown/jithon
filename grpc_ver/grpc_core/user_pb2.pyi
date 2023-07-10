@@ -27,20 +27,22 @@ LoginStatus_UNSCANNED: LoginStatus
 LoginStatus_UNCONFIRMED: LoginStatus
 
 class UserInfoReply(_message.Message):
-    __slots__ = ["is_login", "mid", "uname", "face", "vip_status", "vip_label_text"]
+    __slots__ = ["is_login", "mid", "uname", "face", "vip_status", "vip_label_text", "badge"]
     IS_LOGIN_FIELD_NUMBER: _ClassVar[int]
     MID_FIELD_NUMBER: _ClassVar[int]
     UNAME_FIELD_NUMBER: _ClassVar[int]
     FACE_FIELD_NUMBER: _ClassVar[int]
     VIP_STATUS_FIELD_NUMBER: _ClassVar[int]
     VIP_LABEL_TEXT_FIELD_NUMBER: _ClassVar[int]
+    BADGE_FIELD_NUMBER: _ClassVar[int]
     is_login: bool
     mid: int
     uname: str
     face: bytes
     vip_status: bool
     vip_label_text: str
-    def __init__(self, is_login: bool = ..., mid: _Optional[int] = ..., uname: _Optional[str] = ..., face: _Optional[bytes] = ..., vip_status: bool = ..., vip_label_text: _Optional[str] = ...) -> None: ...
+    badge: str
+    def __init__(self, is_login: bool = ..., mid: _Optional[int] = ..., uname: _Optional[str] = ..., face: _Optional[bytes] = ..., vip_status: bool = ..., vip_label_text: _Optional[str] = ..., badge: _Optional[str] = ...) -> None: ...
 
 class UserLoginQRCodeReq(_message.Message):
     __slots__ = ["api"]

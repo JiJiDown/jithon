@@ -9,6 +9,8 @@ from grpc_core import status_pb2_grpc
 from grpc_core import bvideo_pb2
 from grpc_core import bvideo_pb2_grpc
 import base64
+import core
+
 #需要创建pyi文件不然pb2不知道使用哪个类
 
 #错误处理
@@ -56,8 +58,11 @@ def rund():
     stub = bvideo_pb2_grpc.BvideoStub(channel)
     response = stub.Info(bvideo_pb2.BvideoContentReq(content='https://www.bilibili.com/video/BV1us4y167zF/?spm_id_from=333.1007.tianma.1-3-3.click&vd_source=32f2f4d0d74594e0b5a183b394bf9a49'),metadata=[('client_sdk','JiJiDownPython/1.0.0')])
     response = stub.AllQuality(bvideo_pb2.BvideoAllQualityReq(aid=response.block[0].list[0].page_av,cid=response.block[0].list[0].page_cid),metadata=[('client_sdk','JiJiDownPython/1.0.0')])
-
-
     print
 
-rund()
+def rune():
+    out = core.info('https://www.bilibili.com/video/BV1us4y167zF')
+    response = core.quality(bvid=out['block'][0].list[0].page_bv,cid=out['block'][0].list[0].page_cid)
+    print(response)
+
+print(core.get_user_info()['badge'])

@@ -33,6 +33,8 @@ message UserInfoReply {
   bool vip_status = 5;
   // 会员名称
   string vip_label_text = 6;
+  // 头衔
+  string badge = 7;
 }
 
 enum LoginQRCodeAPI {

@@ -5,6 +5,7 @@ import threading #多进程库
 from pathlib import Path #路径库
 import platform#获取系统信息
 
+from loguru import logger#日志库
 import requests
 import pywebio as io
 out = io.output
@@ -212,12 +213,12 @@ def get_video_quality_list(data:dict) -> list:
     out_video_list.append({'label':'默认最高画质','value':{'quality':1000}})#默认选中
     for type in ['WEB','TV','APP']:#遍历不同接口
         for one_info in data['audio'][type]:#处理返回数据
-            label = type+' '+one_info['quality_str']+' - ['+one_info['codec']+']   '+one_info['stream_size']#选项标签
+            label = type+' '+one_info['quality_text']+' - ['+one_info['codec']+']   '+one_info['bit_rate']+'   '+one_info['stream_size']#选项标签
             value = one_info#选项值
             return_dict = {'label':label,'value':value}
             out_audio_list.append(return_dict)
         for one_info in data['video'][type]:#处理返回数据
-            label = type+' '+one_info['quality_str']+' - ['+one_info['codec']+']   '+one_info['stream_size']#选项标签
+            label = type+' '+one_info['quality_text']+' - ['+one_info['codec']+']   '+one_info['bit_rate']+'   '+one_info['stream_size']#选项标签
             value = one_info#选项值
             return_dict = {'label':label,'value':value}
             out_video_list.append(return_dict)
@@ -238,9 +239,9 @@ def print_video_info(info) -> list:
     返回[视频信息,需下载视频列表,清晰度]
     """
     with out.use_scope('video_info'):#进入视频信息域
-        data = info['data']
+        data = info
         with out.use_scope('up_info'):#切换到up信息域
-            face = requests.get(data['up_face']).content#缓存图片
+            face = data['up_face']#缓存图片
             out.put_row([
                     None,
                     out.put_image(face,height='50px').style('margin-top: 1rem;margin-bottom: 1rem;border:1px solid;border-radius:50%;box-shadow: 5px 5px 5px #A9A9A9'),
@@ -253,7 +254,7 @@ def print_video_info(info) -> list:
                 ],size='1fr 50px 25px auto 1fr').style('border: 1px solid #e9ecef;border-radius: .25rem')#限制up头像大小
         info_title = out.put_text(data['video_title']).style('border: 1px solid #e9ecef;border-radius: .25rem;font-size:2em;font-weight:bold;text-align:center')#视频标题
         if data['video_cover'] != '':
-            cover = requests.get(data['video_cover']).content#缓存图片
+            cover = data['video_cover']#缓存图片
             info_cover = out.put_image(cover).style('border-radius: 30px;box-shadow: 15px 15px 30px #bebebe,-15px -15px 30px #ffffff;')#视频封面
         info_desc = out.put_text(data['video_desc']).style('border: 1px solid #e9ecef;border-radius: .25rem')#视频简介
         info_two = out.put_column([
@@ -269,7 +270,7 @@ def print_video_info(info) -> list:
             out.put_column([info_title,None,info_desc,None,info_two],size='auto 10px auto 10px auto').style('margin-top: 0.5rem;margin-bottom: 0.5rem')#设置为垂直排布
             
         #创建清晰度选择
-        get_video_quality_info = get_video_quality_list(core.quality(data['list'][0]['page_av'],data['list'][0]['page_cid']))#读取视频列表第一个的清晰度
+        get_video_quality_info = get_video_quality_list(core.quality(bvid=data['block'][0].list[0].page_bv,cid=data['block'][0].list[0].page_cid))#读取视频列表第一个的清晰度
         with out.use_scope('quality'):#创建清晰度选择域
             out.put_column([
                 pin.put_select(name='select_video',options=get_video_quality_info[0],value={'quality':1000}),#创建视频选择
@@ -282,10 +283,11 @@ def print_video_info(info) -> list:
         for one in data['list']:#遍历列表
             num += 1
             list_one = []
-            list_one.append(pin.put_checkbox(name='check_'+str(num),options=[{'label':str(num),'value':one}]).style('line-height:0.5'))#创建单选框
-            list_one.append(out.put_text(one['page_name']).style('width:100%'))#标题
+            need_data = {'bvid':one.page_bv,'cid':one.page_cid,'title':one.page_title,'info':one.page_info}#把rpc数据json化
+            list_one.append(pin.put_checkbox(name='check_'+str(one.page_index),options=[{'label':one.page_index,'value':need_data}]).style('line-height:0.5'))#创建单选框
+            list_one.append(out.put_text(one.page_title).style('width:100%'))#标题
             table_list.append(list_one)
-        out.put_table(table_list,position=-1).style('width:100%')
+        out.put_table(table_list,position=-1)
         
         #移除加载提示
         out.clear('load')
@@ -428,8 +430,7 @@ def start_url():
                 ],size='1fr auto auto 1fr')
             
         #解析url
-        out_url = get_video_id(url)
-        get_video_info = core.info(out_url[0],out_url[1])
+        get_video_info = core.info(url)
         return_data = print_video_info(get_video_info)#显示视频信息,返回视频信息
         if return_data == 'out':#如果选择退出界面或未勾选任何视频
             out.clear('video_info')#清空video_info域
@@ -446,7 +447,7 @@ def start_url():
             ]).style('border: 1px solid #e9ecef;border-radius: .25rem')
         num = 0
         for need_video in return_data[1]:
-            return_down_data:dict = core.post_new_task(need_video['page_av'],need_video['page_cid'],video_data,audio_data,make_down_name(return_data,need_video))
+            return_down_data:dict = core.post_new_task(need_video['page_bv'],need_video['page_cid'],video_data,audio_data,make_down_name(return_data,need_video))
             set_info['need_down_list'].append({'control_name':return_down_data['data']['control_name'],'video_info':need_video})#添加控制字节段至下载列表
             core.save_json(set_info)#刷新设置里的下载列表
             num += 1
@@ -457,12 +458,12 @@ def start_url():
 
 #主函数
 def main():#主函数
-    print('主函数启动')
+    logger.info('网页服务器启动')
     if not start_jiji_core.is_alive():
-        print('启动核心')
+        logger.info('启动核心')
         io.session.register_thread(start_jiji_core)
         start_jiji_core.setDaemon(True)#设为守护进程
-        start_jiji_core.start()
+        #start_jiji_core.start()
     with out.use_scope('main'):#创建并进入main域
         out.scroll_to('main','top')
         #等待核心响应提示
@@ -477,30 +478,36 @@ def main():#主函数
                     ],size='1fr 1fr'),
                 None
             ],size='1fr auto 20px auto 1fr')
-        while core.check() != 'ok':#当响应不正确
-            time.sleep(1)
-        out.clear('load')
-        out.remove('load')
+        #检查登录
+        user_info = core.get_user_info()
+        out.clear('load')#清空加载界面
+        out.remove('load')#删除加载界面
         #初始化
         out.scroll_to('main','top')
         out.clear('main')
-        #检查登录
-        user_info = core.get_user_info()
         if user_info['code'] == True:#如果已登录
             with out.use_scope('user_info'):#切换到用户信息域
-                face = requests.get(user_info['face']).content#缓存图片
+                face = user_info['face']#缓存图片
+                put_user = '当前登录用户: '+user_info['uname']
+                if user_info['vip_label_text'] != '':
+                    put_user += ' ['+user_info['vip_label_text']+']'
+                if user_info['badge'] != '':
+                    put_user += ' ['+user_info['badge']+']'
                 out.put_row([
                     None,
                     out.put_image(face,height='50px').style('margin-top: 1rem;margin-bottom: 1rem;border:1px solid;border-radius:50%;box-shadow: 5px 5px 5px #A9A9A9'),
                     None,
                     out.put_column([
                         None,
-                        out.put_text('当前登录用户:'+user_info['uname']+user_info['vip_label_text']).style('font-size:1.25em;line-height: 0'),
+                        out.put_text(put_user).style('font-size:1.25em;line-height: 0'),
                         ],size='1fr 1fr'),
                     None
                 ],size='1fr 50px 25px auto 1fr').style('border: 1px solid #e9ecef;border-radius: .25rem')#限制用户头像大小
         else:
-            return_data = core.get_login_status()#获取二维码
+            #创建选择弹窗
+            with out.popup('选择接口'):
+                qr_type = ioin.actions([{'label':'WEB接口','value':0,'color':'primary'},{'label':'TV接口','value':1,'color':'primary'}])
+            return_data = core.get_login_status(qr_type)#获取二维码
             with out.use_scope('login'):
                 out.put_row([
                     None,
@@ -511,14 +518,21 @@ def main():#主函数
                     ],size='auto 1fr 1rem').style('border: 1px solid #e9ecef;border-radius: .25rem;box-shadow: 5px 5px 5px #A9A9A9'),
                     None
                 ],size='1fr auto 1fr')
-            while 1==1:
-                check_user_info = core.get_user_info()#循环检查是否扫描
-                if check_user_info['code'] == True:#如果登录成功
+                check_user_info = core.get_qr_status(id=return_data['id'])#循环检查是否扫描
+                if check_user_info['code'] == 1:#如果登录成功
                     out.clear('login')
                     out.remove('login')
                     return
-                time.sleep(1)
-        
+                elif check_user_info['code'] == 2:#如果二维码失效
+                    logger.warning('二维码失效,一秒后重试')
+                    time.sleep(1)
+                    main()
+                elif check_user_info['code'] == 0:#如果出现未知错误
+                    logger.warning('二维码出现未知错误,一秒后重试')
+                    time.sleep(1)
+                    main()
+
+
         #创建横向标签栏
         scope_url = out.put_scope('url')#创建url域
         scope_set = out.put_scope('set')#创建set域
@@ -542,23 +556,24 @@ def main():#主函数
             thread1 = threading.Thread(target=show_down_list)
             thread2 = threading.Thread(target=show_fin_list)
             if not thread1.is_alive():
-                print('启动线程1')
+                logger.info('启动下载任务监听进程')
                 io.session.register_thread(thread1)
                 thread1.setDaemon(True)#设为守护进程
                 thread1.start()
             if not thread2.is_alive():
-                print('启动线程2')
+                logger.info('启动下载完成任务监听进程')
                 io.session.register_thread(thread2)
                 thread2.setDaemon(True)#设为守护进程
                 thread2.start()
 
         #创建设置
-        with out.use_scope('set'):#进入域
-            out.put_row([out.put_text('目前下载地址：'),pin.put_input(name='change_dir',value=core.get_down_dir()),out.put_button('确认修改',onclick=check_dir)])
+        #with out.use_scope('set'):#进入域
+            #out.put_row([out.put_text('目前下载地址：'),pin.put_input(name='change_dir',value=core.get_down_dir()),out.put_button('确认修改',onclick=check_dir)])
 
-print('自动更新核心')
-core.update_core(system_type,system_bit)#更新核心
+
+logger.info('自动更新核心')
+#core.update_core(system_type,system_bit)#更新核心
 start_jiji_core = threading.Thread(target=start_core)
 io.config(title='Jithon 2.0 Beta',description='本应用为唧唧2.0基于python的webui实现',theme='yeti')
-print('主程序启动,如未自动跳转请打开http://127.0.0.1:8080')
+logger.info('主程序启动,如未自动跳转请打开http://127.0.0.1:8080')
 io.start_server(main,host='127.0.0.1',port=8080,debug=True,cdn=False,auto_open_webbrowser=True)
