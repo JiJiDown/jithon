@@ -56,21 +56,22 @@ def check() -> str:
     else:
         return 'error'
 
-#添加编码信息
+#编码信息转索引
 def code(keys):
     if keys['codec'] == 0:
-        keys['codec'] = 'NONE'
-    if keys['codec'] == 1:
-        keys['codec'] = 'H264'
-    if keys['codec'] == 2:
-        keys['codec'] = 'H265'
-    if keys['codec'] == 3:
-        keys['codec'] = 'AV1'
-    if keys['codec'] == 4:
-        keys['codec'] = 'M4A'
-    if keys['codec'] == 5:
-        keys['codec'] = 'DOLBY'
+        keys['codec_text'] = 'NONE'
+    elif keys['codec'] == 1:
+        keys['codec_text'] = 'H264'
+    elif keys['codec'] == 2:
+        keys['codec_text'] = 'H265'
+    elif keys['codec'] == 3:
+        keys['codec_text'] = 'AV1'
+    elif keys['codec'] == 4:
+        keys['codec_text'] = 'M4A'
+    elif keys['codec'] == 5:
+        keys['codec_text'] = 'DOLBY'
     return keys
+
 
 #列表排序
 def dic(info):
@@ -131,7 +132,7 @@ def get_login_status(api:int) -> dict:
     #data = get(base_url+'/bili/user/tv/get_login_status')
     stub = user_pb2_grpc.UserStub(channel)
     try:
-            response = stub.Info(user_pb2.UserLoginQRCodeReq(api=api),metadata=metadata)
+            response = stub.LoginQRCode(user_pb2.UserLoginQRCodeReq(api=api),metadata=metadata)
     except Exception as e:#已登录
             logger.debug('用户已登录')
             return {'code': 0}
@@ -162,11 +163,11 @@ def get_qr_status(id:str):
             #TODO
             login_successful = one.login_successful#登录是否成功
             if login_successful or status == 1:#登陆成功
-                return {'code':1}
+                return 1
             elif status == 2:#二维码失效
-                return {'code':2}
+                return 2
             elif status == 0:#未知
-                return {'code':0}
+                return 0
 
 ############################################################ Jiji层
 
@@ -367,7 +368,9 @@ def info(url: str) -> dict:
             response = stub.Info(bvideo_pb2.BvideoContentReq(content=url),metadata=metadata)
             list = []
             for a in response.block:#遍历每一页的视频
-                list += a.list
+                for b in a.list:
+                    if not b in list:
+                        list.append(b)
             info_list = {
                 'error':False,
                 'blink_result':response.blink_result,
@@ -444,17 +447,11 @@ def quality(bvid:str, cid:int) -> dict:
         quality = code(enchange(quality,type=0))
         if quality['api_type'] == 0:
             new_video_info['video']['WEB'].append(quality)
-            continue
-
-        if quality['api_type'] == 1:
+        elif quality['api_type'] == 1:
             new_video_info['video']['TV'].append(quality)
-            continue
-
-        if quality['api_type'] == 2:
+        elif quality['api_type'] == 2:
             new_video_info['video']['APP'].append(quality)
-            continue
-
-    for quality in response.audio:  # 视频分类
+    for quality in response.audio:  # 音频分类
         quality = code(enchange(quality,type=1))
         if quality['api_type'] == 0:
             new_video_info['audio']['WEB'].append(quality)
@@ -481,7 +478,7 @@ def quality(bvid:str, cid:int) -> dict:
 ################################################################## 任务管理层
 
 #创建下载任务
-def post_new_task(bvid:int,cid:int,video_quality:int,audio_quality:int,video_codec:str,api_type:int,save_filename:str,audio_only:bool) -> dict:
+def post_new_task(bvid:int,cid:int,video_quality:int,audio_quality:int,save_filename:str,video_codec:str='WEB',api_type:int=0,audio_only:bool=False) -> dict:
     """
     video_quality为1000时使用默认最高分辨率下载
     以下参数仅在video_quality不等于1000时生效
@@ -505,52 +502,20 @@ def download_danmaku(avid:int,cid:int,video_filename:str):
     #return_data = get(base_url+'/danmaku/'+avid+'/'+cid+'/download_danmaku?file='+video_filename)
     pass
 
-#获取下载任务进度
-def get_task_status(control_name:str):
-    #return_data = get(base_url+'/task/'+control_name+'/get_task_status')
-    #return return_data['data']
-    pass
-
 #暂停任务
 def patch_pause_task(task_id:str):
     stub = task_pb2_grpc.TaskStub(channel)
-    response = stub.TaskControlReq(task_id=task_id,do='TaskDo_PAUSE')
+    response = stub.Control(task_pb2.TaskControlReq(task_id=task_id,do=1),metadata=metadata)
     #return_data = patch(base_url+'/task/'+control_name+'/patch_pause_task')
 
 #继续任务
 def patch_resume_task(task_id:str):
     stub = task_pb2_grpc.TaskStub(channel)
-    response = stub.TaskControlReq(task_id=task_id,do='TaskDo_RESUME')
+    response = stub.Control(task_pb2.TaskControlReq(task_id=task_id,do=2),metadata=metadata)
     #return_data = patch(base_url+'/task/'+control_name+'/patch_resume_task')
 
 #删除任务和文件
 def delete_task(task_id:str):
     stub = task_pb2_grpc.TaskStub(channel)
-    response = stub.TaskControlReq(task_id=task_id,do='TaskDo_DELETE_AND_FILE')
+    response = stub.Control(task_pb2.TaskControlReq(task_id=task_id,do=4),metadata=metadata)
     #return_data = patch(base_url+'/task/'+control_name+'/delete_task_and_file')
-
-#读取json中的下载列表
-def load_json() -> dict:
-    """
-    读取配置参数
-    """
-    if os.path.exists('set.json'):
-        with open('set.json','r') as f:
-            return_data = json.loads(f.read())
-    else:
-        data = {}
-        data['need_down_list'] = []
-        data['fin_down_list'] = []
-        with open('set.json','w') as f:
-            f.write(json.dumps(data))
-        return_data = data
-    return return_data
-
-#写入下载列表
-def save_json(data:dict) -> None:
-    """
-    读取配置参数
-    """
-    with open('set.json','w') as f:
-        f.write(json.dumps(data))
-    return

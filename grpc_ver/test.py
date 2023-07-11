@@ -65,4 +65,12 @@ def rune():
     response = core.quality(bvid=out['block'][0].list[0].page_bv,cid=out['block'][0].list[0].page_cid)
     print(response)
 
-print(core.get_user_info()['badge'])
+def login():
+    channel = grpc.insecure_channel('localhost:64000')
+    stub = user_pb2_grpc.UserStub(channel)
+    response = stub.LoginQRCode(user_pb2.UserLoginQRCodeReq(api=1),metadata=[('client_sdk','JiJiDownPython/1.0.0')])
+    login_image:bytes = response.qr_code
+    with open('qr.png','wb') as f:
+         f.write(login_image)
+
+login()
