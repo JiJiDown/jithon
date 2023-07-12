@@ -392,6 +392,7 @@ def start_url():
     return
 
 #主函数
+@logger.catch
 def main():#主函数
     try:
         logger.info('网页服务器启动')
@@ -518,7 +519,7 @@ start_jiji_core = threading.Thread(target=start_core)#设置核心线程
 io.config(title='Jithon 3.0 Beta',description='本应用为唧唧2.0基于python的webui实现',theme='yeti')
 logger.info('主程序启动,如未自动跳转请打开http://127.0.0.1:8080')
 try:
-    io.start_server(main,host='127.0.0.1',port=8080,debug=False,cdn=False,auto_open_webbrowser=True)
+    io.start_server(main,host='127.0.0.1',port=8080,debug=True,cdn=False,auto_open_webbrowser=True)
 except KeyboardInterrupt:#程序被手动关闭
     logger.info('程序已终止')
     exit()
