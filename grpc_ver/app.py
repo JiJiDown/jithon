@@ -27,6 +27,8 @@ system_type = platform.system()#系统名称
 system_bit = platform.machine()#操作系统位数
 #启动时间
 local_time = time.strftime("%Y_%m_%d_%H_%M_%S", time.localtime())
+#设置窗口标题
+os.system('title Jithon 3.0 Beta')
 
 #挂载核心
 def start_core():
