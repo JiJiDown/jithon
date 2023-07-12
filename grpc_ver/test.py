@@ -11,6 +11,10 @@ from grpc_core import bvideo_pb2_grpc
 import base64
 import core
 
+import requests
+
+import google.protobuf.empty_pb2 as empty_pb2
+import os
 #需要创建pyi文件不然pb2不知道使用哪个类
 
 #错误处理
@@ -73,4 +77,13 @@ def login():
     with open('qr.png','wb') as f:
          f.write(login_image)
 
-login()
+def update():
+    channel = grpc.insecure_channel('localhost:64000')
+    stub = status_pb2_grpc.StatusStub(channel)
+    response =stub.CheckUpdate(empty_pb2.Empty(),metadata=[('client_sdk','JiJiDownPython/1.0.0')])
+    for one in response:
+        print(one.status)
+        print(one.change_log)
+
+out = os.popen('ffmpg')
+print(out.read())

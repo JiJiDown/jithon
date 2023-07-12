@@ -12,3 +12,10 @@ set.json
 core/
 JiJiDownCore-win64.exe
 grpc_ver/grpc.code-workspace
+JiJiDownForReWPF.exe
+grpc_csharp_ext.x64.dll
+.png
+.yaml
+.obj
+Jithon_2.0_Beta_Setup_00001.png
+JiJiDownForReWPF_00001.png

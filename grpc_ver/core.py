@@ -1,14 +1,17 @@
 import os
-import json
 import time
-from base64 import b64decode  # 二维码编码
 from pathlib import Path #路径库
 import hashlib#sha256加密库
 
 from loguru import logger#日志库
 
-import wget
 import requests
+
+import pywebio as io
+out = io.output
+ioin = io.input
+pin = io.pin
+
 
 import grpc
 
@@ -41,6 +44,32 @@ Path(local_dir+'/resources').mkdir(parents=True,exist_ok=True)  # 创建核心�
 Path(local_dir+'/temp').mkdir(parents=True,exist_ok=True)# 创建临时文件夹
 Path(appdata+'/JiJiDown').mkdir(parents=True,exist_ok=True)# 创建jijidown配置文件夹
 logger.info('设置路径')
+
+#检查ffmpeg可用性
+def check_ffmpeg():
+    return_ff_list = find_core()
+    for a in return_ff_list:
+        if 'ffmpeg' in return_ff_list:
+            logger.info('ffmpeg存在') # log
+            return
+    logger.warning('未找到ffmpeg,下载的视频可能无法合成') # log
+    return
+
+#下载文件
+def download(url:str,out:str):
+    """
+    下载文件
+    """
+    #try:
+    r = requests.get(url=url,stream=True,headers=headers)
+    with open(str(Path(out)),'wb') as f:
+        for ch in r:
+            f.write(ch)
+    return
+    #except:
+        #logger.info('尝试下载核心失败,检查是否开启代理或者网络未连接')
+        #time.sleep(1)
+        #download(url=url,out=out)
 
 #检查核心是否启动
 def check() -> str:
@@ -105,10 +134,15 @@ def get_user_info() -> dict:
     stub = user_pb2_grpc.UserStub(channel)
     logger.debug('尝试获取用户登录状态')# log
     try:
-            response = stub.Info(user_pb2.UserInfoReply(),metadata=metadata)
+        response = stub.Info(user_pb2.UserInfoReply(),metadata=metadata)
+    except grpc._channel._InactiveRpcError:#通讯失败
+        logger.warning('核心未启动')
+        time.sleep(1)
+        return get_user_info()
     except:
-            logger.debug('用户未登录')# log
-            return {'code': False}# 返回状态
+        logger.debug('用户未登录')# log
+        return {'code': False}# 返回状态
+
     mid: int = response.mid  # 用户mid
     is_login: bool = response.is_login  # 登录状态
     uname: str = response.uname  # 用户名
@@ -176,7 +210,8 @@ def get_sha265() -> dict:
     """
     获取最新的服务器上存储的sha265
     """
-    cloud_hash = brower.get('http://101.34.172.63/PC/ReWPF/core/JiJiDownCore-hash.txt').text#获取云端最新核心信息
+    logger.info('获取云端核心数据,检查更新')
+    cloud_hash = brower.get('https://jj.xn--5nx14y.top/PC/ReWPF/core/JiJiDownCore-hash.txt').text#获取云端最新核心信息
     cloud_hash = cloud_hash.split()
     fin = []
     for a in cloud_hash:
@@ -198,33 +233,34 @@ def down_core(system_type:str,system_bit:str) -> str:
     自动匹配平台下载核心
     返回下载的核心文件名
     """
+    logger.info('未找到核心,尝试下载') # log
     if system_type == 'Windows':#如果平台为windows
         if system_bit == 'AMD64':#如果系统位数为64
-            core_name = wget.download('https://101.34.172.63/PC/ReWPF/core/JiJiDownCore-win64.exe',out=str(Path('resources/')))
+            core_name = download('http://jj.xn--5nx14y.top/PC/ReWPF/core/JiJiDownCore-win64.exe',out=str(Path('resources/JiJiDownCore-win64.exe')))
             return core_name
         elif system_bit == 'x86':
-            core_name = wget.download('https://101.34.172.63/PC/ReWPF/core/JiJiDownCore-win32.exe',out=str(Path('resources/')))
+            core_name = download('https://jj.xn--5nx14y.top/PC/ReWPF/core/JiJiDownCore-win32.exe',out=str(Path('resources/JiJiDownCore-win32.exe')))
             return core_name
         elif system_bit == 'i386':
-            core_name = wget.download('https://101.34.172.63/PC/ReWPF/core/JiJiDownCore-win32.exe',out=str(Path('resources/')))
+            core_name = download('https://jj.xn--5nx14y.top/PC/ReWPF/core/JiJiDownCore-win32.exe',out=str(Path('resources/JiJiDownCore-win32.exe')))
             return core_name
     elif system_type == 'Linux':
         if system_bit == 'AMD64':#如果系统为x86平台
-            core_name = wget.download('https://101.34.172.63/PC/ReWPF/core/JiJiDownCore-linux-amd64',out=str(Path('resources/')))
+            core_name = download('https://jj.xn--5nx14y.top/PC/ReWPF/core/JiJiDownCore-linux-amd64',out=str(Path('resources/JiJiDownCore-linux-amd64')))
             return core_name
         elif system_bit == 'aarch64':
-            core_name = wget.download('https://101.34.172.63/PC/ReWPF/core/JiJiDownCore-linux-arm64',out=str(Path('resources/')))
+            core_name = download('https://jj.xn--5nx14y.top/PC/ReWPF/core/JiJiDownCore-linux-arm64',out=str(Path('resources/JiJiDownCore-linux-arm64')))
         #如果均不匹配下载amd64版本
-        core_name = wget.download('https://101.34.172.63/PC/ReWPF/core/JiJiDownCore-linux-amd64',out=str(Path('resources/')))
+        core_name = download('https://jj.xn--5nx14y.top/PC/ReWPF/core/JiJiDownCore-linux-amd64',out=str(Path('resources/JiJiDownCore-linux-amd64')))
         return core_name
     elif system_type == 'darwin':
         if system_bit == 'amd64':#如果系统位数为64
-            core_name = wget.download('https://101.34.172.63/PC/ReWPF/core/JiJiDownCore-darwin-amd64',out=str(Path('resources/')))
+            core_name =download('https://jj.xn--5nx14y.top/PC/ReWPF/core/JiJiDownCore-darwin-amd64',out=str(Path('resources/JiJiDownCore-darwin-amd64')))
             return core_name
         elif system_bit == 'arm64':
-            core_name = wget.download('https://101.34.172.63/PC/ReWPF/core/JiJiDownCore-darwin-arm64',out=str(Path('resources/')))
+            core_name = download('https://jj.xn--5nx14y.top/PC/ReWPF/core/JiJiDownCore-darwin-arm64',out=str(Path('resources/JiJiDownCore-darwin-arm64')))
         #如果均不匹配下载amd64版本
-        core_name = wget.download('https://101.34.172.63/PC/ReWPF/core/JiJiDownCore-darwin-amd64',out=str(Path('resources/')))
+        core_name = download('https://jj.xn--5nx14y.top/PC/ReWPF/core/JiJiDownCore-darwin-amd64',out=str(Path('resources/JiJiDownCore-darwin-amd64')))
         return core_name
     return 'error'
 
@@ -251,15 +287,17 @@ def update_core(system_type:str,system_bit:str) -> str:
         cloud_sha265 = get_sha265()#获取云端sha265
         for a in cloud_sha265:#对比sha265
             if a[0] == sha265:
+                logger.info('核心目前是最新版本') # log
                 return '目前是最新版本'
         for a in cloud_sha265:#sha265不匹配就查找相同名称的最新核心进行替换
             if a[-1] == str(Path(local_core).name):
                 Path.unlink(local_core)#删除旧核心
-                core_name = wget.download('https://101.34.172.63/PC/ReWPF/core/'+str(Path(local_core).name),out=str(Path('resources/')))
+                core_name = download('https://101.34.172.63/PC/ReWPF/core/'+str(Path(local_core).name),out=str(Path('resources/'+str(Path(local_core).name))))
+                logger.info('核心更新完成')
                 return core_name+'已更新完成'
     else:#如果没有核心
         return_data = down_core(system_type,system_bit)#按平台下载核心
-        return return_data+'自动下载完成'
+        return '自动下载完成'
 
 # 生成配置文件
 def make_yaml():
@@ -364,34 +402,51 @@ def info(url: str) -> dict:
     stub = bvideo_pb2_grpc.BvideoStub(channel)
         #error code 10 ABORTED
     try:
-            logger.debug('发送视频信息查询 {}',url)# log
-            response = stub.Info(bvideo_pb2.BvideoContentReq(content=url),metadata=metadata)
-            list = []
-            for a in response.block:#遍历每一页的视频
-                for b in a.list:
-                    if not b in list:
-                        list.append(b)
-            info_list = {
-                'error':False,
-                'blink_result':response.blink_result,
-                'video_cover':response.video_cover,
-                'video_title':response.video_title,
-                'video_filename':response.video_filename,
-                'video_desc':response.video_desc,
-                'sub_sort':response.sub_sort,
-                'sort':response.sort,
-                'up_name':response.up_name,
-                'up_mid':response.up_mid,
-                'up_face':response.up_face,
-                'bili_pubdate_str':response.bili_pubdate_str,
-                'is_stein_gate':response.is_stein_gate,
-                'block':response.block,
-                'list':list
-                }
+        logger.debug('发送视频信息查询 {}',url)# log
+        response = stub.Info(bvideo_pb2.BvideoContentReq(content=url),metadata=metadata)
+        list = []
+        for a in response.block:#遍历每一页的视频
+            for b in a.list:
+                if not b in list:
+                    list.append(b)
+        info_list = {
+            'error':False,
+            'blink_result':response.blink_result,
+            'video_cover':response.video_cover,
+            'video_title':response.video_title,
+            'video_filename':response.video_filename,
+            'video_desc':response.video_desc,
+            'sub_sort':response.sub_sort,
+            'sort':response.sort,
+            'up_name':response.up_name,
+            'up_mid':response.up_mid,
+            'up_face':response.up_face,
+            'bili_pubdate_str':response.bili_pubdate_str,
+            'is_stein_gate':response.is_stein_gate,
+            'block':response.block,
+            'list':list
+            }
+    except grpc._channel._InactiveRpcError as e:
+        code_name = e.code().name# 错误类型
+        code_value = e.code().value
+        if e.details() == "GetUpSpaceSeriesAndCollectionList It's a premium feature":#获取up视频列表和合集无权限
+            logger.warning('无唧唧会员权限')
+            logger.warning('无法获取UP视频列表和合集信息')
+            out.toast('无唧唧会员权限,无法获取UP视频列表和合集信息',duration=3,position='center',color='warn')
+        elif e.details() == "GetBangumiList function not allowed":
+            logger.warning('无权限')
+            logger.warning('不允许获取番剧信息')
+            out.toast('不允许获取番剧信息',duration=3,position='center',color='warn')
+        elif e.details() == "GetFavoriteList It's a premium feature":
+            logger.warning('无唧唧会员权限')
+            logger.warning('无法获取收藏夹信息')
+            out.toast('无唧唧会员权限,无法获取收藏夹信息',duration=3,position='center',color='warn')
+        return {'error':True,'msg':e.details(),'error_value':code_value[0],'error_name':code_name}
     except Exception as e:#出现grpc异常
             code_name = e.code().name# 错误类型
             code_value = e.code().value
-            logger.error('出现错误 '+e.details())# log
+            logger.error('出现未定义错误 '+e.details())# log
+            out.toast('出现未定义错误 '+e.details(),duration=3,position='center',color='warn')
             logger.error('错误类型 '+code_name)
             return {'error':True,'msg':e.details(),'error_value':code_value[0],'error_name':code_name}
     return info_list
@@ -410,6 +465,10 @@ def enchange(data,type):
     return_data['bit_rate']:str = data.bit_rate
     return_data['stream_size']:str = data.stream_size
     return_data['api_type']:int = data.api_type
+    return_data['error']:bool = False
+    return_data['msg']:str = '成功'
+    return_data['error_value']:int = 0
+    return_data['error_name']:str = ''
     return return_data
 
 # 获取分辨率
@@ -421,18 +480,6 @@ def quality(bvid:str, cid:int) -> dict:
     # 获取指定分P清晰度
     #one_video_info = get(base_url+'/bili/1/'+str(av) +'/'+str(cid)+'/get_video_quality')
 
-    stub = bvideo_pb2_grpc.BvideoStub(channel)
-    logger.debug('发送清晰度查询 bvid={} cid={}',bvid,cid)# log
-    #try:
-    response = stub.AllQuality(bvideo_pb2.BvideoAllQualityReq(bvid=bvid,cid=cid),metadata=metadata)
-    #except Exception as e:#出现grpc异常
-        #code_name = e.code().name# 错误类型
-        #code_value = e.code().value
-        #logger.error('出现错误 '+e.details())# log
-        #logger.error('错误类型 '+code_name)# log
-        #return
-
-
     new_video_info = {}  # 新建分辨率排序
     new_video_info['audio'] = {}
     new_video_info['video'] = {}
@@ -442,6 +489,22 @@ def quality(bvid:str, cid:int) -> dict:
     new_video_info['video']['WEB'] = []
     new_video_info['video']['TV'] = []
     new_video_info['video']['APP'] = []
+
+    stub = bvideo_pb2_grpc.BvideoStub(channel)
+    logger.debug('发送清晰度查询 bvid={} cid={}',bvid,cid)# log
+    try:
+        response = stub.AllQuality(bvideo_pb2.BvideoAllQualityReq(bvid=bvid,cid=cid),metadata=metadata)
+    except grpc._channel._InactiveRpcError:#无权限
+        logger.warning('无唧唧会员权限')
+        logger.warning('无法获取分辨率列表')
+        out.toast('无唧唧会员权限,无法获取分辨率列表',duration=3,position='center',color='warning')
+        return new_video_info
+    #except Exception as e:#出现grpc异常
+        #code_name = e.code().name# 错误类型
+        #code_value = e.code().value
+        #logger.error('出现错误 '+e.details())# log
+        #logger.error('错误类型 '+code_name)# log
+        #return
 
     for quality in response.video:  # 视频分类
         quality = code(enchange(quality,type=0))
@@ -519,3 +582,14 @@ def delete_task(task_id:str):
     stub = task_pb2_grpc.TaskStub(channel)
     response = stub.Control(task_pb2.TaskControlReq(task_id=task_id,do=4),metadata=metadata)
     #return_data = patch(base_url+'/task/'+control_name+'/delete_task_and_file')
+
+def status_ping():
+    """
+    检查操作系统
+    server_name = 服务器名称
+    os.icon = 服务器图标
+    os_system_name = 操作系统名称
+    """
+    stub = status_pb2_grpc.StatusStub(channel)
+    response = stub.Ping(empty_pb2.Empty(),metadata=metadata)
+    return {'server_name':response.server_name,'os_icon':response.os_icon,'os_system_name':response.os_system_name}

@@ -1,10 +1,12 @@
 import re
 import os
 import time
+import subprocess
 import threading #多进程库
 from pathlib import Path #路径库
 import platform#获取系统信息
 
+import grpc
 from loguru import logger#日志库
 import requests
 import pywebio as io
@@ -33,7 +35,12 @@ def start_core():
     """
     print("windows核心已启动")
     os.system('taskkill /f /t /im "JiJiDownCore-win64.exe"')#关闭核心
-    core_out = os.popen(str(Path('resources/JiJiDownCore-win64.exe'))+'>>'+str(Path('temp/log_'+local_time+'.log')))#启动核心
+    exe_path = str(Path('resources/JiJiDownCore-win64.exe').resolve())
+    log_path = str(Path('temp/log_'+local_time+'.log').resolve())
+    #os.chdir(str(Path('resources').resolve()))
+    #input(exe_path)
+    with open(log_path,'w+') as f:
+        subprocess.run(exe_path,shell=True,stdout=f,text=True,cwd=str(Path('resources').resolve()))#启动核心且设置工作目录为resources
 
 #检查下载路径
 def check_dir():
@@ -83,60 +90,6 @@ def check_input_url(url):
         return
     return '链接无效'
 
-#检查输入链接类型
-def get_video_id(url) -> list:
-    """
-    检查输入链接类型
-    输出为list [序号:int,id:str]
-    """
-    #判断输入url类型
-    #手机端链接处理
-    if "b23.tv" in url:
-        url = re.findall('(https://b23.tv/.......)',url)[0]
-        video_info = requests.get(url,allow_redirects=False).text#转换为网页版链接
-        get_video_id(video_info)#重新检查
-    #ep类型处理
-    if "ep" in url:
-        video_info = re.findall('ep(\d*)',url)[0]
-        if video_info != '':
-            return [3,video_info]
-    #ss类型处理
-    if "ss" in url:
-        video_info = re.findall('ss(\d*)',url)[0]
-        if video_info != '':
-            return [4,video_info]
-    #media类型处理
-    if "media/md" in url:#https://www.bilibili.com/bangumi/media/md28234644
-        video_info = re.findall('md(\d*)',url)[0]
-        if video_info != '':
-            return [5,video_info]
-    #收藏夹处理
-    if "favlist?fid=" in url:#https://space.bilibili.com/1118188465/favlist?fid=1228786865
-        video_info = re.findall('fid.([0-9]*)',url)[0]
-        if video_info != '':
-            return [7,video_info]
-    #up主合集处理
-    if "?sid=" in url:#https://space.bilibili.com/1118188465/channel/collectiondetail?sid=28413
-        video_info = re.findall('?sid=(\d*)',url)[0]
-        if video_info != '':
-            return [8,video_info]
-    #up主投稿处理
-    if "space.bilibili.com" in url:#https://space.bilibili.com/1118188465
-        video_info = re.findall('space.bilibili.com/(\d*)',url)[0]
-        if video_info != '':
-            return [6,video_info]
-    #BV解析
-    if "BV" in url:
-        video_info = re.findall('BV(..........)',url)[0]
-        if video_info != '':
-            return [2,video_info]
-    #AV解析
-    if "av" in url:
-        video_info = re.findall('av(\d*)',url)[0]
-        if video_info != '':
-            return [1,video_info]
-    return ''
-
 #检查任务状态类型
 def get_task_status(data:int) -> str:
     """
@@ -156,28 +109,6 @@ def get_task_status(data:int) -> str:
         return '正在提取MP3'
     if data == 6:
         return '完成'
-
-#将下载完成的移动到完成任务列表中
-def remove_fin_task(control_name:str):
-    data = core.load_json()#读取配置
-    for one in data['need_down_list']:#遍历正在进行的任务列表
-        if control_name == one['control_name']:
-            data['fin_down_list'].append(one)
-            data['need_down_list'].remove(one)
-            break
-    core.save_json(data)
-    return
-
-#从任务列表中移除任务（暂时）TODO 未来实现自动恢复下载进度
-def remove_task(control_name:str):
-    data = core.load_json()#读取配置
-    for one in data['need_down_list']:#遍历正在进行的任务列表
-        if control_name == one['control_name']:
-            core.delete_task(one['control_name'])#删除任务
-            data['need_down_list'].remove(one)
-            break
-    core.save_json(data)
-    return
 
 #获取被勾选视频数据
 def get_video_list_info(num:int) -> list:
@@ -235,6 +166,7 @@ def make_down_name(info_date:dict,video_data:dict) -> str:
     下载文件名处理
     预留接口
     """
+    info_date['title'] = re.sub(r'[\/:*?"<>|]', "_", info_date['title'])
     return info_date['title']
 
 #显示视频下载选择界面
@@ -331,56 +263,6 @@ def print_video_info(info) -> list:
             return 'out'
     return [data,need_video_list,need_quality]
 
-#显示完成列表
-def show_fin_list():
-    """
-    处理下载列表并显示
-    {'need_video','control_name'}
-    """
-    #加载任务列表
-    data_list = core.load_json()['fin_down_list']#获取需要下载的列表
-    if len(data_list) == 0:#如果列表为空则等待
-        time.sleep(1)
-        show_fin_list()
-    show_list = []
-    #初始化
-    for list_one in data_list:#遍历创建下载列表
-        show_list.append([
-            out.put_row([
-                out.put_text(list_one['video_info']['page_name']),#TODO 创建标题
-                out.put_column([
-                    out.put_scope('sta_text_'+list_one['control_name']),#创建用于进度提示的域,控制值为'sta_text_'+list_one['control_name']
-                    out.put_processbar(list_one['control_name'],init=0)#下载列表,控制值为list_one['control_name']
-                    ]),
-                out.put_scope('sta_worktype_'+list_one['control_name']),#创建用于显示任务状态的域,控制值为'sta_worktype_'+list_one['control_name']
-                ])
-        ])# 创建显示
-    
-    #显示列表
-    with out.use_scope('fin_work',clear=True):#清除域
-        out.put_table(show_list)
-
-        #刷新状态
-        while 1==1:
-            for list_one in data_list:#遍历下载列表
-                get_task_info = core.get_task_status(list_one['control_name'])#获取下载任务状态
-                if get_task_info == None:#如果类型为None说明该任务不在下载器中 TODO 未来实现自动添加任务继续下载
-                    remove_task(list_one['control_name'])#移除任务
-                    #show_down_list()#重新启动下载列表维护进程
-                out.set_processbar(list_one['control_name'],value= get_task_info['progress'] / 100)#刷新进度条状态
-                with out.use_scope('sta_text_'+list_one['control_name'],clear=True):#进入用于进度提示的域并清空
-                    out.put_text(get_task_info['status_text'])#显示进度提示文本
-                with out.use_scope('sta_worktype_'+list_one['control_name'],clear=True):#进入用于显示任务状态提示文本的域并清空
-                    out.put_text(get_task_status(int(get_task_info['task_status'])))#显示任务状态提示文本
-                    if int(get_task_info['task_status']) == 6:#如果任务下载完成
-                        remove_fin_task(list_one['control_name'])#将任务移入完成列表
-                if get_task_info['msg'] != '':#如果出现错误信息
-                    out.toast(list_one['video_info']['video_filename']+'   '+get_task_info['msg'],color='error')
-            time.sleep(1)#等待1秒
-            #如果下载列表更新
-            if data_list != core.load_json()['need_fin_list']:#如果现在维护的和存储的不一样
-                show_fin_list()
-
 #监视下载任务进程
 def watch_status(task_id:str,name:str):
     def del_task():
@@ -398,22 +280,26 @@ def watch_status(task_id:str,name:str):
         #with out.use_scope('down_work'):#进入downwork建立显示区域
             #out.put_scope(task_id)# 定义域
         need_print = out.put_row([
-                            out.put_column([
-                                None,
-                                out.put_text(name),#TODO 创建标题
-                                out.put_scope('sta_text_'+task_id),#创建用于进度提示的域,控制值为'sta_text_'+list_one['control_name']
-                                out.put_processbar('bar_'+task_id,init=0),#下载列表,控制值为list_one['control_name']
-                                None
-                                ],size='0.5fr 1fr 1fr 1fr 0.5fr'),
-                            out.put_scope('sta_worktype_'+task_id),#创建用于显示任务状态的域,控制值为'sta_worktype_'+list_one['control_name']
-                            out.put_column([
-                                None,
-                                out.put_button('暂停',onclick=lambda:core.patch_pause_task(task_id),color='warning'),#暂停按钮
-                                out.put_button('继续',onclick=lambda:resume_task(),color='success'),#继续按钮
-                                out.put_button('删除',onclick=lambda:del_task(),color='danger'),
-                                None
-                            ])#删除按钮
-                            ],size='80% 10% 10%')# 创建显示
+            None,
+            out.put_column([
+                None,
+                out.put_text(name).style('text-align:left;font-size:1em;max-height:3em'),#TODO 创建标题
+                out.put_scope('sta_text_'+task_id).style('text-align:center;font-size:0.875em;max-height:2em'),#创建用于进度提示的域,控制值为'sta_text_'+list_one['control_name']
+                out.put_processbar('bar_'+task_id,init=0).style('width:100%;height=1em'),#下载列表,控制值为list_one['control_name']
+                ],size='0.5fr 1fr 1fr 1fr 0.5fr'),
+            out.put_column([
+                None,
+                out.put_scope('sta_worktype_'+task_id),
+                None
+            ],size='1fr auto 1fr').style('height=100%'),#创建用于显示任务状态的域,控制值为'sta_worktype_'+list_one['control_name']
+            out.put_column([
+                None,
+                out.put_button('暂停',onclick=lambda:core.patch_pause_task(task_id),color='warning').style('margin-left: auto;margin-right: auto'),#暂停按钮
+                out.put_button('继续',onclick=lambda:resume_task(),color='success'),#继续按钮
+                out.put_button('删除',onclick=lambda:del_task(),color='danger'),
+                None
+            ])#删除按钮
+            ],size='10px 80% 10% 10%').style('border: 1px solid #ccc')# 创建显示
 
         with out.use_scope('down_work'):
             with out.use_scope(task_id,clear=True):
@@ -424,8 +310,11 @@ def watch_status(task_id:str,name:str):
                         with out.use_scope('sta_text_'+task_id,clear=True):#进入用于进度提示的域并清空
                             out.put_text(sec_print.text)#显示进度提示文本
                         with out.use_scope('sta_worktype_'+task_id,clear=True):#进入用于显示任务状态提示文本的域并清空
-                            out.put_text(get_task_status(int(sec_print.task_status)))
-                            out.put_text(sec_print.average_speed)#显示任务状态提示文本
+                            out.put_column([
+                                out.put_text(get_task_status(int(sec_print.task_status))).style('text-align:center;font-size:0.5em'),
+                                None,
+                                out.put_text(sec_print.average_speed).style('text-align:center;font-size:0.5em'),#显示任务状态提示文本
+                            ],size='auto auto auto auto auto')
                         if sec_print.task_status == 6:#任务完成
                             logger.success(name+' 下载完成')# log
                             return
@@ -436,7 +325,7 @@ def watch_status(task_id:str,name:str):
                             time.sleep(1)
                             continue#试图重试
     except Exception as e:
-        logger.error('线程出现错误')
+        logger.error('线程出现错误,无法获取下载进度')
         #time.sleep(1)
         #watch_status(task_id=task_id,name=name)#试图重试
 
@@ -454,16 +343,23 @@ def start_url():
     #显示加载提示
         with out.use_scope('load'):
             out.put_row([
-                None,
                 out.put_loading(),
+                None,
                 out.put_text('解析中'),
-                None
-                ],size='1fr auto auto 1fr')
+                ],size='1fr 20px 1fr')
 
         #解析url
         get_video_info = core.info(url)
+        out.remove('load')#移除加载提示
+        if get_video_info['error']:#出现权限问题
+            logger.warning('解析失败')
+            out.toast('解析失败',duration=3,position='center',color='warn')
+            out.remove('posting')
+            out.clear('video_info')#清空video_info域
+            return
         return_data = print_video_info(get_video_info)#显示视频信息,返回视频信息
         if return_data == 'out':#如果选择退出界面或未勾选任何视频
+            out.remove('posting')
             out.clear('video_info')#清空video_info域
             return
         #开始下载任务
@@ -502,15 +398,14 @@ def main():#主函数
         if not start_jiji_core.is_alive():
             logger.info('启动核心')
             io.session.register_thread(start_jiji_core)
-            #start_jiji_core.setDaemon(True)#设为守护进程
-            #start_jiji_core.start()
+            start_jiji_core.start()
         with out.use_scope('main'):#创建并进入main域
             out.scroll_to('main','top')
             #等待核心响应提示
             with out.use_scope('load'):
                 out.put_row([
                     None,
-                    out.put_loading(color='primary').style('width:4rem; height:4rem'),
+                    out.put_loading(color='primary').style('width:4rem; height:4rem;padding: 15px 0'),
                     None,
                     out.put_column([
                             None,
@@ -521,6 +416,10 @@ def main():#主函数
             #检查登录
             user_info = core.get_user_info()
             logger.debug('核心已连接') # log
+            #获取操作系统
+            system_info = core.status_ping()
+            logger.info('当前服务器名称 '+system_info['server_name']) # log
+            logger.info('当前操作系统名称 '+system_info['os_system_name']) # log
             out.clear('load')#清空加载界面
             out.remove('load')#删除加载界面
             #初始化
@@ -553,12 +452,13 @@ def main():#主函数
                     out.put_row([
                         None,
                         out.put_column([
+                            None,
                             out.put_text('请扫描二维码登录').style('line-height: 1;text-align:center'),
                             None,
-                            out.put_image(return_data['image']),
-                        ],size='auto 20px auto').style('border: 1px solid #e9ecef;border-radius: .25rem;box-shadow: 5px 5px 5px #A9A9A9'),
+                            out.put_image(return_data['image'],width='50%').style('margin: auto'),
+                        ],size='10px auto 10px auto'),
                         None
-                    ],size='0.25fr 1fr 0.25fr')
+                    ],size='20px auto 20px').style('border: 1px solid #e9ecef;border-radius: .25rem;box-shadow: 5px 5px 5px #A9A9A9')
                     check_user_info = core.get_qr_status(id=return_data['id'])#循环检查是否扫描
                     if check_user_info == 1:#如果登录成功
                         out.clear('login')
@@ -591,23 +491,11 @@ def main():#主函数
             with out.use_scope('down'):
                 scope_down_work = out.put_scope('down_work')
                 scope_down_fin = out.put_scope('down_fin')
-                out.put_tabs([{'title':'下载中','content':scope_down_work},{'title':'下载完成','content':scope_down_fin}])#创建横向标签栏
+                out.put_tabs([{'title':'下载中','content':scope_down_work}])#创建横向标签栏
 
-                # 开启新线程
-                #thread1 = threading.Thread(target=show_down_list)
-                #thread2 = threading.Thread(target=show_fin_list)
-                #if not thread1.is_alive():
-                    #logger.info('启动下载任务监听进程')
-                    #io.session.register_thread(thread1)
-                    #thread1.setDaemon(True)#设为守护进程
-                    #thread1.start()
-                #if not thread2.is_alive():
-                    #logger.info('启动下载完成任务监听进程')
-                    #io.session.register_thread(thread2)
-                    #thread2.setDaemon(True)#设为守护进程
-                    #thread2.start()
             #创建设置
-            #with out.use_scope('set'):#进入域
+            with out.use_scope('set'):#进入域
+                out.put_text('由于下载地址接口未更新到新协议，暂时不提供实时修改方式')
                 #out.put_row([out.put_text('目前下载地址：'),pin.put_input(name='change_dir',value=core.get_down_dir()),out.put_button('确认修改',onclick=check_dir)])
 
 
@@ -617,12 +505,17 @@ def main():#主函数
         logger.error('无法与核心通讯,10秒后重试')
         time.sleep(5)
         main()
-
+    except grpc._channel._MultiThreadedRendezvous as e:
+        if e.details() == "Stream removed":
+            logger.warning('核心异常停止')
+            time.sleep(1)
+            main()
 
 logger.info('自动更新核心')
-#core.update_core(system_type,system_bit)#更新核心
-start_jiji_core = threading.Thread(target=start_core)
-io.config(title='Jithon 2.0 Beta',description='本应用为唧唧2.0基于python的webui实现',theme='yeti')
+core.update_core(system_type,system_bit)#更新核心
+core.check_ffmpeg()#检查ffmpeg可用性
+start_jiji_core = threading.Thread(target=start_core)#设置核心线程
+io.config(title='Jithon 3.0 Beta',description='本应用为唧唧2.0基于python的webui实现',theme='yeti')
 logger.info('主程序启动,如未自动跳转请打开http://127.0.0.1:8080')
 try:
     io.start_server(main,host='127.0.0.1',port=8080,debug=False,cdn=False,auto_open_webbrowser=True)
