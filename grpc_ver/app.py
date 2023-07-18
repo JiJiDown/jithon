@@ -1,10 +1,12 @@
 import re
 import os
+import sys
 import time
 import subprocess
 import threading #多进程库
 from pathlib import Path #路径库
 import platform#获取系统信息
+import ctypes
 
 import grpc
 from loguru import logger#日志库
@@ -35,14 +37,34 @@ def start_core():
     """
     挂载核心
     """
-    print("windows核心已启动")
-    os.system('taskkill /f /t /im "JiJiDownCore-win64.exe"')#关闭核心
-    exe_path = str(Path('resources/JiJiDownCore-win64.exe').resolve())
-    log_path = str(Path('temp/log_'+local_time+'.log').resolve())
-    #os.chdir(str(Path('resources').resolve()))
-    #input(exe_path)
-    with open(log_path,'w+') as f:
-        subprocess.run(exe_path,shell=True,stdout=f,text=True,cwd=str(Path('resources').resolve()))#启动核心且设置工作目录为resources
+    while 1==1:
+        logger.info("windows核心已启动")
+        #os.popen('taskkill /f /t /im "JiJiDownCore-win64.exe"')#关闭核心
+        log_time = time.strftime("%Y_%m_%d_%H_%M_%S", time.localtime())
+        exe_path = str(Path('resources/JiJiDownCore-win64.exe').resolve())
+        log_path = str(Path('temp/log_'+log_time+'.log').resolve())
+        #os.chdir(str(Path('resources').resolve()))
+        #input(exe_path)
+        with open(log_path,'w+',encoding='UTF-8') as f:
+            subprocess.run(exe_path,shell=True,stdout=f,text=True,cwd=str(Path('resources').resolve()))#启动核心且设置工作目录为resources
+        logger.error('核心关闭,尝试重启,检查异常信息') # log
+        with open(log_path,'r',encoding='UTF-8') as f:
+            return_data = f.read()
+            error = 0
+            if 'nice try' in return_data:
+                logger.warning('系统时间错误,请手动校正时间')
+            if 'External controller gRPC listen error' in return_data:
+                logger.warning('核心gRPC端口被占用(localhost:64000)')
+                error = 1
+            if 'External controller listen error' in return_data:
+                logger.warning('核心RESTful端口被占用(localhost:64001)')
+                error = 1
+            if error == 1:#端口被占用
+                logger.info('尝试修复端口占用问题')
+                os.popen('taskkill /f /t /im "JiJiDownCore-win64.exe"')#关闭核心
+                logger.info('修复完成,尝试重启核心')
+            time.sleep(5)
+            continue
 
 #检查下载路径
 def check_dir():
@@ -399,8 +421,8 @@ def main():#主函数
     try:
         logger.info('网页服务器启动')
         if not start_jiji_core.is_alive():
-            logger.info('启动核心')
             io.session.register_thread(start_jiji_core)
+            logger.info('启动核心')
             start_jiji_core.start()
         with out.use_scope('main'):#创建并进入main域
             out.scroll_to('main','top')
@@ -417,8 +439,12 @@ def main():#主函数
                     None
                 ],size='1fr auto 20px auto 1fr')
             #检查登录
-            user_info = core.get_user_info()
-            logger.debug('核心已连接') # log
+            while 1==1:
+                user_info = core.get_user_info()
+                if user_info['code'] != -1:#服务器启动失败
+                    break
+                logger.debug('核心启动失败,重试')
+                time.sleep(1)
             #获取操作系统
             system_info = core.status_ping()
             logger.info('当前服务器名称 '+system_info['server_name']) # log
@@ -428,8 +454,9 @@ def main():#主函数
             #初始化
             out.scroll_to('main','top')
             out.clear('main')
-            if user_info['code'] == True:#如果已登录
+            if user_info['code'] == 0:#如果已登录
                 with out.use_scope('user_info'):#切换到用户信息域
+                    logger.debug('核心已连接') # log
                     face = user_info['face']#缓存图片
                     put_user = '当前登录用户: '+user_info['uname']
                     if user_info['vip_label_text'] != '':
@@ -447,7 +474,8 @@ def main():#主函数
                             ],size='1fr 1fr'),
                         None
                     ],size='1fr 50px 25px auto 1fr').style('border: 1px solid #e9ecef;border-radius: .25rem')#限制用户头像大小
-            elif user_info['code'] == False:
+            elif user_info['code'] == 1:
+                logger.debug('核心已连接') # log
                 #创建选择弹窗
                 qr_type = ioin.actions('选择登录接口',[{'label':'WEB接口','value':0,'color':'primary','type':'submit'},{'label':'TV接口','value':1,'color':'primary','type':'submit'}],help_text='WEB接口仅支持WEB接口下载,TV接口支持全接口下载')
                 return_data = core.get_login_status(qr_type)#获取二维码
@@ -475,14 +503,11 @@ def main():#主函数
                         logger.warning('二维码出现未知错误,1秒后重试') # log
                         time.sleep(1)
                         main()
-
-
             #创建横向标签栏
             scope_url = out.put_scope('url')#创建url域
             scope_set = out.put_scope('set')#创建set域
             scope_down = out.put_scope('down')#创建down域
             out.put_tabs([{'title':'链接解析','content':scope_url},{'title':'下载列表','content':scope_down},{'title':'设置','content':scope_set}])#创建
-            
 
             #创建url输入框
             with out.use_scope('url'):#进入域
@@ -519,6 +544,8 @@ core.update_core(system_type,system_bit)#更新核心
 core.check_ffmpeg()#检查ffmpeg可用性
 start_jiji_core = threading.Thread(target=start_core)#设置核心线程
 io.config(title='Jithon 3.0 Beta',description='本应用为唧唧2.0基于python的webui实现',theme='yeti')
+#logger.info('申请管理员权限')
+#ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)
 logger.info('主程序启动,如未自动跳转请打开http://127.0.0.1:8080')
 try:
     io.start_server(main,host='127.0.0.1',port=8080,debug=True,cdn=False,auto_open_webbrowser=True)

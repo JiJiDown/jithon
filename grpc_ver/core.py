@@ -1,5 +1,6 @@
 import os
 import time
+import subprocess
 from pathlib import Path #路径库
 import hashlib#sha256加密库
 
@@ -115,6 +116,20 @@ def dic(info):
                 new_info.append(c)
     return new_info
 
+#强制关闭端口占用程序
+def find_kill(ano:int):
+    """
+    查找并关闭占用端口的程序
+    """
+    return_data = subprocess.check_output('netstat -aon|findstr "'+str(ano)+'"',shell=True).decode('gbk').split()#获取信息,编码,分割成列表
+    pid = return_data[-1]
+    if pid.isnumeric():
+        return_data = os.popen('taskkill /F /PID '+str(pid)+' /t')#获取进程PID并停止进程
+        if '成功:' in return_data:
+            logger.info('成功关闭占用 '+str(ano)+'端口的 PID'+str(pid)+'程序')
+            return
+        logger.warning('未成功关闭占用 '+str(ano)+'端口的 PID'+str(pid)+'程序')
+    return
 ############################################################ User层
 
 # 获取登录状态
@@ -135,14 +150,13 @@ def get_user_info() -> dict:
     logger.debug('尝试获取用户登录状态')# log
     try:
         response = stub.Info(user_pb2.UserInfoReply(),metadata=metadata)
-    except grpc._channel._InactiveRpcError:#通讯失败
-        logger.warning('核心未启动')
-        time.sleep(1)
-        return get_user_info()
-    except:
+    except grpc._channel._InactiveRpcError as e:#通讯失败
+        if e.code().value[0] == 14:
+            logger.warning('核心未启动')
+            out.toast('无法连接核心,重试中',duration=3,position='center',color='warn')
+            return {'code':-1}
         logger.debug('用户未登录')# log
-        return {'code': False}# 返回状态
-
+        return {'code': 1}# 返回状态
     mid: int = response.mid  # 用户mid
     is_login: bool = response.is_login  # 登录状态
     uname: str = response.uname  # 用户名
@@ -150,7 +164,7 @@ def get_user_info() -> dict:
     vip_status: bool = response.vip_status  # 大会员登录状态
     vip_label_text: str = response.vip_label_text  # 大会员状态（年度大会员等）
     badge:str = response.badge  # 头衔
-    return {'code': True, 'mid': mid, 'is_login': is_login, 'uname': uname, 'face': face, 'vip_status': vip_status, 'vip_label_text': vip_label_text,'badge':badge}
+    return {'code': 0, 'mid': mid, 'is_login': is_login, 'uname': uname, 'face': face, 'vip_status': vip_status, 'vip_label_text': vip_label_text,'badge':badge}
 
 # 获取登录二维码
 def get_login_status(api:int) -> dict:
@@ -168,6 +182,8 @@ def get_login_status(api:int) -> dict:
     try:
             response = stub.LoginQRCode(user_pb2.UserLoginQRCodeReq(api=api),metadata=metadata)
     except Exception as e:#已登录
+            if e.code().value[0] == 14:#连接失败
+                logger.warning('核心无响应')
             logger.debug('用户已登录')
             return {'code': 0}
     login_image:bytes = response.qr_code  # 登录用二维码(二进制png)
@@ -441,6 +457,11 @@ def info(url: str) -> dict:
             logger.warning('无唧唧会员权限')
             logger.warning('无法获取收藏夹信息')
             out.toast('无唧唧会员权限,无法获取收藏夹信息',duration=3,position='center',color='warn')
+        elif e.code().value[0] == 14:#核心无响应
+            logger.warning('核心无响应,重试中')
+            out.toast('核心无响应,重试中',duration=3,position='center',color='warn')
+            time.sleep(1)
+            info(url)
         return {'error':True,'msg':e.details(),'error_value':code_value[0],'error_name':code_name}
     except Exception as e:#出现grpc异常
             code_name = e.code().name# 错误类型
@@ -591,5 +612,9 @@ def status_ping():
     os_system_name = 操作系统名称
     """
     stub = status_pb2_grpc.StatusStub(channel)
-    response = stub.Ping(empty_pb2.Empty(),metadata=metadata)
+    try:
+        response = stub.Ping(empty_pb2.Empty(),metadata=metadata)
+    except grpc._channel._InactiveRpcError as e:
+        if e.code().value[0] == 14:
+            return {'server_name':'null','os_icon':'null','os_system_name':'null'}
     return {'server_name':response.server_name,'os_icon':response.os_icon,'os_system_name':response.os_system_name}
