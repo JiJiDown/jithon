@@ -7,7 +7,7 @@ import hashlib#sha256加密库
 from loguru import logger#日志库
 
 import requests
-
+from tqdm import tqdm
 import pywebio as io
 out = io.output
 ioin = io.input
@@ -50,10 +50,14 @@ logger.info('设置路径')
 def check_ffmpeg():
     return_ff_list = find_core()
     for a in return_ff_list:
-        if 'ffmpeg' in return_ff_list:
+        if 'ffmpeg' in a:
             logger.info('ffmpeg存在') # log
             return
     logger.warning('未找到ffmpeg,下载的视频可能无法合成') # log
+    logger.info('尝试下载ffmpeg')
+    down_url = lanzou_api('https://wwwv.lanzouw.com/iluwh12vtnli','9zp2')['download']
+    download(down_url,str(Path('resources/ffmpeg.exe')))
+    check_ffmpeg()
     return
 
 #下载文件
@@ -62,15 +66,23 @@ def download(url:str,out:str):
     下载文件
     """
     #try:
-    r = requests.get(url=url,stream=True,headers=headers)
-    with open(str(Path(out)),'wb') as f:
-        for ch in r:
-            f.write(ch)
-    return
-    #except:
-        #logger.info('尝试下载核心失败,检查是否开启代理或者网络未连接')
-        #time.sleep(1)
-        #download(url=url,out=out)
+    Path(local_dir+'/resources').mkdir(parents=True,exist_ok=True)  # 创建核心文件夹
+    r = brower.get(url=url,stream=True,headers=headers)
+    # 用流stream的方式获取url的数据
+    # 拿到文件的长度，并把total初始化为0
+    total = int(r.headers.get('content-length', 0))
+    # 打开当前目录的fname文件(名字你来传入)
+    # 初始化tqdm，传入总数，文件名等数据，接着就是写入，更新等操作了
+    with open(str(Path(out).resolve()), 'wb') as file, tqdm(
+        desc='下载中',
+        total=total,
+        unit='iB',
+        unit_scale=True,
+        unit_divisor=1024,
+    ) as bar:
+        for data in r.iter_content(chunk_size=1024):
+            size = file.write(data)
+            bar.update(size)
 
 #检查核心是否启动
 def check() -> str:
@@ -130,6 +142,14 @@ def find_kill(ano:int):
             return
         logger.warning('未成功关闭占用 '+str(ano)+'端口的 PID'+str(pid)+'程序')
     return
+
+#蓝奏api
+def lanzou_api(url:str,password:str):
+    """
+    蓝奏链接转直链
+    """
+    return_data = requests.get('https://www.yuanxiapi.cn/api/lanzou/?url='+url+'&pwd='+password,headers=headers).json()
+    return return_data
 ############################################################ User层
 
 # 获取登录状态
@@ -237,7 +257,7 @@ def get_sha265() -> dict:
 
 # 检查是否存在核心
 def find_core():
-    dir_path = Path('resources/').iterdir()
+    dir_path = Path('resources/').resolve().iterdir()
     fin = []
     for i in dir_path:
         fin.append(i.name)
