@@ -6,7 +6,6 @@ import subprocess
 import threading #多进程库
 from pathlib import Path #路径库
 import platform#获取系统信息
-import ctypes
 
 import grpc
 from loguru import logger#日志库
@@ -38,10 +37,16 @@ def start_core():
     挂载核心
     """
     while 1==1:
-        logger.info("windows核心已启动")
+        logger.info("核心已启动")
         #os.popen('taskkill /f /t /im "JiJiDownCore-win64.exe"')#关闭核心
         log_time = time.strftime("%Y_%m_%d_%H_%M_%S", time.localtime())
-        exe_path = str(Path('resources/JiJiDownCore-win64.exe').resolve())
+        if system_type == 'Windows':#如果平台为windows
+            exe_path = str(Path('resources/JiJiDownCore-win64.exe').resolve())
+        elif system_type == 'Linux':
+            if system_bit == 'AMD64':#如果系统为x86平台
+                exe_path = str(Path('resources/JiJiDownCore-linux-amd64').resolve())
+            elif system_bit == 'aarch64':#如果系统为x86平台
+                exe_path = str(Path('resources/JiJiDownCore-linux-arm64').resolve())
         log_path = str(Path('temp/log_'+log_time+'.log').resolve())
         #os.chdir(str(Path('resources').resolve()))
         #input(exe_path)
@@ -61,7 +66,8 @@ def start_core():
                 error = 1
             if error == 1:#端口被占用
                 logger.info('尝试修复端口占用问题')
-                os.popen('taskkill /f /t /im "JiJiDownCore-win64.exe"')#关闭核心
+                if system_type == 'Windows':#如果平台为windows
+                    os.popen('taskkill /f /t /im "JiJiDownCore-win64.exe"')#关闭核心
                 logger.info('修复完成,尝试重启核心')
             time.sleep(5)
             continue

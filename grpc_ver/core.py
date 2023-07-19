@@ -3,6 +3,7 @@ import time
 import subprocess
 from pathlib import Path #路径库
 import hashlib#sha256加密库
+import platform#获取系统信息
 
 from loguru import logger#日志库
 
@@ -33,6 +34,9 @@ brower = requests.Session()
 headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
 }
+#获取当前平台
+system_type = platform.system()#系统名称
+system_bit = platform.machine()#操作系统位数
 
 base_url = "localhost:64000"  # 默认端口
 local_dir = str(Path.cwd())  # 默认下载地址
@@ -55,8 +59,12 @@ def check_ffmpeg():
             return
     logger.warning('未找到ffmpeg,下载的视频可能无法合成') # log
     logger.info('尝试下载ffmpeg')
-    down_url = lanzou_api('https://wwwv.lanzouw.com/iluwh12vtnli','9zp2')['download']
-    download(down_url,str(Path('resources/ffmpeg.exe')))
+    if system_type == 'Windows':#如果平台为windows
+        down_url = lanzou_api('https://wwwv.lanzouw.com/iluwh12vtnli','9zp2')['download']
+        download(down_url,str(Path('resources/ffmpeg.exe')))
+    elif system_type == 'Linux':
+        down_url = lanzou_api('https://wwwv.lanzouw.com/iFcWl12wrxqh','d27f')['download']
+        download(down_url,str(Path('resources/ffmpeg')))
     check_ffmpeg()
     return
 
