@@ -92,7 +92,7 @@ import pyuac
 if not pyuac.isUserAdmin():
         print("Re-launching as admin!")
         pyuac.runAsAdmin()
-subprocess.run('net start w32time',shell=True,text=True)
+a = os.popen('net start w32time')
 input()
 #subprocess.run('net start w32time',shell=True,text=True)
 """诡秘16

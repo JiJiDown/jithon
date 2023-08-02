@@ -81,16 +81,16 @@ def hack_cookies():
     for a in return_ff_list:
         if 'hack-browser-data' in a:
             logger.info('cookies提取工具存在') # log
-            out.toast('cookies提取工具存在',duration=1,position='center',color='info')
+            out.toast('cookies提取工具存在',duration=2,position='center',color='info')
 
             return
     logger.info('尝试下载cookies提取工具')
-    out.toast('尝试下载cookies提取工具',duration=1,position='center',color='info')
+    out.toast('尝试下载cookies提取工具',duration=2,position='center',color='info')
     if system_type == 'Windows':#如果平台为windows
         down_url = lanzou_api('https://wwwv.lanzouw.com/ii79412wacsb','fff6')['download']
         download(down_url,str(Path('resources/hack-browser-data.exe')))
         logger.info('工具下载完成')
-        out.toast('工具下载完成',duration=1,position='center',color='info')
+        out.toast('工具下载完成',duration=2,position='center',color='info')
         return
     hack_cookies()
 
@@ -310,7 +310,7 @@ def check_cookies(cookies:str):
 #加载提取的cookies
 @logger.catch
 def get_hack_cookies():
-    with out.popup('cookies登录') as pop:
+    with out.popup('cookies登录',closable=False) as pop:
         out.put_warning('自动登录功能是通过读取浏览器已经登录的账号cookies实现的。目前支持Chrome、Edge。请确保在浏览器中已经登陆了账号。\n提取cookies需要使用工具。工具会被误报成病毒，请关闭杀毒软件。工具并非Jithon开发，不对因此造成的任何损失负责')
     hack_cookies()#下载工具
     subprocess.run(str(Path('resources\hack-browser-data-windows-64bit.exe').resolve())+' -browser chrome -dir cookies -f json',shell=True,text=True,cwd=str(Path('resources').resolve()))

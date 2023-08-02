@@ -6,7 +6,7 @@ import threading #多进程库
 from pathlib import Path #路径库
 import platform#获取系统信息
 
-import pyuac#获取管理员权限
+from pyuac import isUserAdmin,runAsAdmin#获取管理员权限
 import grpc
 from loguru import logger#日志库
 import requests
@@ -29,7 +29,7 @@ system_bit = platform.machine()#操作系统位数
 #启动时间
 local_time = time.strftime("%Y_%m_%d_%H_%M_%S", time.localtime())
 #设置窗口标题
-os.system('title Jithon 3.0 Beta')
+os.system('title Jithon 3.2 Beta')
 
 #挂载核心
 @logger.catch
@@ -60,9 +60,9 @@ def start_core():
             if 'nice try' in return_data:
                 logger.warning('系统时间错误,尝试校正时间')
                 logger.info('启动w32time')
-                os.popen('net start w32time')
-                logger.info('添加授时服务器')
-                os.popen('w32tm /config /manualpeerlist:"cn.ntp.org.cn ntp.ntsc.ac.cn" /syncfromflags:manual /reliable:yes /update')
+                os.popen('net start w32time&w32tm /config /manualpeerlist:"cn.ntp.org.cn ntp.ntsc.ac.cn" /syncfromflags:manual /reliable:yes /update')
+                #logger.info('添加授时服务器')
+                #os.popen('w32tm /config /manualpeerlist:"cn.ntp.org.cn ntp.ntsc.ac.cn" /syncfromflags:manual /reliable:yes /update')
             if 'An attempt was made to access a socket in a way forbidden by its access permissions.' in return_data:
                 logger.warning('系统抽风,端口被占用,尝试关闭ICS服务')
                 os.popen('net stop SharedAccess')
@@ -534,6 +534,9 @@ def main():#主函数
                         core.send_cookies(pin.pin['cookies_input'],pin.pin['accesstoken_input'])
                         out.close_popup()
                         main()
+                    def auto():
+                        login_auto()
+                        main()
                     with out.popup('cookies登录',closable=False) as s:
                         def login_auto():
                             core.get_hack_cookies()
@@ -587,15 +590,15 @@ def main():#主函数
             time.sleep(1)
             main()
 
-if not pyuac.isUserAdmin():
+if not isUserAdmin():
         logger.warning("当前不是管理员权限,核心错误修复无法工作")
         logger.info("以管理员权限重启")
-        pyuac.runAsAdmin()
+        runAsAdmin()
 logger.info('自动更新核心')
 core.update_core(system_type,system_bit)#更新核心
 core.check_ffmpeg()#检查ffmpeg可用性
 start_jiji_core = threading.Thread(target=start_core)#设置核心线程
-io.config(title='Jithon 3.0 Beta',description='本应用为唧唧2.0基于python的webui实现',theme='yeti')
+io.config(title='Jithon 3.2 Beta',description='本应用为唧唧2.0基于python的webui实现',theme='yeti')
 logger.info('主程序启动,如未自动跳转请打开http://127.0.0.1:8080')
 try:
     io.start_server(main,host='127.0.0.1',port=8080,debug=True,cdn=False,auto_open_webbrowser=True)
