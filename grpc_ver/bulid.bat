@@ -1,0 +1,1 @@
+pyi-makespec -F -i f:\code\jithon\grpc_ver\JiJiDownForReWPF.exe app.py

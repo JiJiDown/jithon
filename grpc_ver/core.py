@@ -14,7 +14,7 @@ out = io.output
 ioin = io.input
 pin = io.pin
 
-
+import json
 import grpc
 
 from grpc_core import user_pb2
@@ -27,16 +27,19 @@ from grpc_core import bvideo_pb2
 from grpc_core import bvideo_pb2_grpc
 
 import google.protobuf.empty_pb2 as empty_pb2
+#获取当前平台
+system_type = platform.system()#系统名称
+system_bit = platform.machine()#操作系统位数
 # 初始化
-local_core = str(Path('resources/JiJiDownCore-win64.exe').resolve())
+if system_type == 'Windows':#如果平台为windows
+    local_core = str(Path('resources/JiJiDownCore-win64.exe').resolve())
+elif system_type == 'Linux':
+    local_core = str(Path('resources/JiJiDownCore-linux-amd64').resolve())
 local_time = time.strftime("%y/%m/%d", time.localtime())
 brower = requests.Session()
 headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
 }
-#获取当前平台
-system_type = platform.system()#系统名称
-system_bit = platform.machine()#操作系统位数
 
 base_url = "localhost:64000"  # 默认端口
 local_dir = str(Path.cwd())  # 默认下载地址
@@ -63,10 +66,33 @@ def check_ffmpeg():
         down_url = lanzou_api('https://wwwv.lanzouw.com/iluwh12vtnli','9zp2')['download']
         download(down_url,str(Path('resources/ffmpeg.exe')))
     elif system_type == 'Linux':
-        down_url = lanzou_api('https://wwwv.lanzouw.com/iFcWl12wrxqh','d27f')['download']
-        download(down_url,str(Path('resources/ffmpeg')))
+        if system_bit == 'AMD64':#如果系统为x86平台
+            down_url = lanzou_api('https://wwwv.lanzouw.com/ilt8M133q15a','h9fo')['download']
+            download(down_url,str(Path('resources/ffmpeg')))
+        elif system_bit == 'aarch64':
+            down_url = lanzou_api('https://wwwv.lanzouw.com/inF9x12zcn5e','7pap')['download']
+            download(down_url,str(Path('resources/ffmpeg')))
     check_ffmpeg()
     return
+
+#下载cookies提取工具
+def hack_cookies():
+    return_ff_list = find_core()
+    for a in return_ff_list:
+        if 'hack-browser-data' in a:
+            logger.info('cookies提取工具存在') # log
+            out.toast('cookies提取工具存在',duration=1,position='center',color='info')
+
+            return
+    logger.info('尝试下载cookies提取工具')
+    out.toast('尝试下载cookies提取工具',duration=1,position='center',color='info')
+    if system_type == 'Windows':#如果平台为windows
+        down_url = lanzou_api('https://wwwv.lanzouw.com/ii79412wacsb','fff6')['download']
+        download(down_url,str(Path('resources/hack-browser-data.exe')))
+        logger.info('工具下载完成')
+        out.toast('工具下载完成',duration=1,position='center',color='info')
+        return
+    hack_cookies()
 
 #下载文件
 def download(url:str,out:str):
@@ -247,6 +273,70 @@ def get_qr_status(id:str):
             elif status == 0:#未知
                 return 0
 
+# 发送cookies尝试登录
+def send_cookies(cookies:str,access_token:str=''):
+    stub = user_pb2_grpc.UserStub(channel)
+    response = stub.ImportCookie(user_pb2.UserImportCookieReq(cookies=cookies,access_token=access_token),metadata=metadata)
+
+# 检查cookies是否正确
+def check_cookies(cookies:str):
+    error = 0
+    if not 'DedeUserID' in cookies:
+        out.toast('DedeUserID未找到',duration=1,position='center',color='warn')
+        logger.warning('DedeUserID未找到')
+        error = 1
+    if not 'DedeUserID__ckMd5' in cookies:
+        out.toast('DedeUserID__ckMd5未找到',duration=1,position='center',color='warn')
+        logger.warning('DedeUserID__ckMd5未找到')
+        error = 1
+    if not 'SESSDATA' in cookies:
+        out.toast('SESSDATA未找到',duration=1,position='center',color='warn')
+        logger.warning('SESSDATA未找到')
+        error = 1
+    if not 'bili_jct' in cookies:
+        out.toast('bili_jct未输入',duration=1,position='center',color='warn')
+        logger.warning('bili_jct未输入')
+        error = 1
+    if not 'sid' in cookies:
+        out.toast('sid未输入',duration=1,position='center',color='warn')
+        logger.warning('sid未输入')
+        error = 1
+    if not 'buvid3' in cookies:
+        out.toast('buvid3未输入',duration=1,position='center',color='warn')
+        logger.warning('buvid3未输入')
+        error = 1
+    return error
+
+#加载提取的cookies
+@logger.catch
+def get_hack_cookies():
+    with out.popup('cookies登录') as pop:
+        out.put_warning('自动登录功能是通过读取浏览器已经登录的账号cookies实现的。目前支持Chrome、Edge。请确保在浏览器中已经登陆了账号。\n提取cookies需要使用工具。工具会被误报成病毒，请关闭杀毒软件。工具并非Jithon开发，不对因此造成的任何损失负责')
+    hack_cookies()#下载工具
+    subprocess.run(str(Path('resources\hack-browser-data-windows-64bit.exe').resolve())+' -browser chrome -dir cookies -f json',shell=True,text=True,cwd=str(Path('resources').resolve()))
+    subprocess.run(str(Path('resources\hack-browser-data-windows-64bit.exe').resolve())+' -browser edge -dir cookies -f json',shell=True,text=True,cwd=str(Path('resources').resolve()))
+    
+    cookies_path = Path('resources/cookies').resolve().iterdir()
+    for a in cookies_path:
+        if 'cookie' in a.name:
+            with open(str(a.resolve()),'r') as f:
+                return_data = json.load(f)
+            bili_cookies = []
+            for one in return_data:
+                if one['Host'] == '.bilibili.com':#搜索所有b站cookies
+                    bili_cookies.append(one)
+            out_cookies = ''
+            for one in bili_cookies:#提取cookies
+                out_cookies = out_cookies+one['KeyName']+'='+one['Value']+'; '
+            if check_cookies(out_cookies) == 0:
+                send_cookies(out_cookies)
+                out.toast('cookies自动载入成功',position='center',color='success')
+                logger.success('cookies自动载入成功')
+                out.close_popup()
+                return
+    out.toast('未找到登录cookies',position='center',color='error')
+    logger.info('未找到登录cookies')
+    return
 ############################################################ Jiji层
 
 # 获取服务器sha265

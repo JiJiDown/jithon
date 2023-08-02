@@ -1,12 +1,12 @@
 import re
 import os
-import sys
 import time
 import subprocess
 import threading #多进程库
 from pathlib import Path #路径库
 import platform#获取系统信息
 
+import pyuac#获取管理员权限
 import grpc
 from loguru import logger#日志库
 import requests
@@ -32,6 +32,7 @@ local_time = time.strftime("%Y_%m_%d_%H_%M_%S", time.localtime())
 os.system('title Jithon 3.0 Beta')
 
 #挂载核心
+@logger.catch
 def start_core():
     """
     挂载核心
@@ -45,7 +46,7 @@ def start_core():
         elif system_type == 'Linux':
             if system_bit == 'AMD64':#如果系统为x86平台
                 exe_path = str(Path('resources/JiJiDownCore-linux-amd64').resolve())
-            elif system_bit == 'aarch64':#如果系统为x86平台
+            elif system_bit == 'aarch64':#如果系统为arm64平台
                 exe_path = str(Path('resources/JiJiDownCore-linux-arm64').resolve())
         log_path = str(Path('temp/log_'+log_time+'.log').resolve())
         #os.chdir(str(Path('resources').resolve()))
@@ -57,7 +58,14 @@ def start_core():
             return_data = f.read()
             error = 0
             if 'nice try' in return_data:
-                logger.warning('系统时间错误,请手动校正时间')
+                logger.warning('系统时间错误,尝试校正时间')
+                logger.info('启动w32time')
+                os.popen('net start w32time')
+                logger.info('添加授时服务器')
+                os.popen('w32tm /config /manualpeerlist:"cn.ntp.org.cn ntp.ntsc.ac.cn" /syncfromflags:manual /reliable:yes /update')
+            if 'An attempt was made to access a socket in a way forbidden by its access permissions.' in return_data:
+                logger.warning('系统抽风,端口被占用,尝试关闭ICS服务')
+                os.popen('net stop SharedAccess')
             if 'External controller gRPC listen error' in return_data:
                 logger.warning('核心gRPC端口被占用(localhost:64000)')
                 error = 1
@@ -119,6 +127,10 @@ def check_input_url(url):
         video_info = re.findall('?sid=(\d*)',url)[0]
         return
     return '链接无效'
+
+#校验cookies是否正确
+def check_cookies(cookies:str):
+    pass
 
 #检查任务状态类型
 def get_task_status(data:int) -> str:
@@ -294,6 +306,7 @@ def print_video_info(info) -> list:
     return [data,need_video_list,need_quality]
 
 #监视下载任务进程
+@logger.catch
 def watch_status(task_id:str,name:str):
     def del_task():
         core.delete_task(task_id)#向核心发送删除任务消息
@@ -483,32 +496,61 @@ def main():#主函数
             elif user_info['code'] == 1:
                 logger.debug('核心已连接') # log
                 #创建选择弹窗
-                qr_type = ioin.actions('选择登录接口',[{'label':'WEB接口','value':0,'color':'primary','type':'submit'},{'label':'TV接口','value':1,'color':'primary','type':'submit'}],help_text='WEB接口仅支持WEB接口下载,TV接口支持全接口下载')
-                return_data = core.get_login_status(qr_type)#获取二维码
-                with out.use_scope('login'):
-                    out.put_row([
-                        None,
+                qr_type = ioin.actions('选择登录接口',[
+                    {'label':'WEB接口','value':0,'color':'primary','type':'submit'},
+                    {'label':'TV接口','value':1,'color':'primary','type':'submit'},
+                    {'label':'cookies登录','value':2,'color':'primary','type':'submit'}
+                    ],help_text='WEB接口仅支持WEB接口下载,TV接口支持全接口下载')
+                if qr_type == 0 or qr_type == 1:
+                    return_data = core.get_login_status(qr_type)#获取二维码
+                    with out.use_scope('login'):
+                        out.put_row([
+                            None,
+                            out.put_column([
+                                None,
+                                out.put_text('请扫描二维码登录').style('line-height: 1;text-align:center'),
+                                None,
+                                out.put_image(return_data['image'],width='50%').style('margin: auto'),
+                            ],size='10px auto 10px auto'),
+                            None
+                        ],size='20px auto 20px').style('border: 1px solid #e9ecef;border-radius: .25rem;box-shadow: 5px 5px 5px #A9A9A9')
+                        check_user_info = core.get_qr_status(id=return_data['id'])#循环检查是否扫描
+                        if check_user_info == 1:#如果登录成功
+                            out.clear('login')
+                            out.remove('login')
+                            return
+                        elif check_user_info == 2:#如果二维码失效
+                            logger.warning('二维码失效,1秒后重试') # log
+                            time.sleep(1)
+                            main()
+                        elif check_user_info == 0:#如果出现未知错误
+                            logger.warning('二维码出现未知错误,1秒后重试') # log
+                            time.sleep(1)
+                            main()
+                elif qr_type == 2:#cookies登录
+                    def check():
+                        if core.check_cookies(pin.pin['cookies_input'],pin.pin['accesstoken_input']) == 1:#检查不通过
+                            return
+                        core.send_cookies(pin.pin['cookies_input'],pin.pin['accesstoken_input'])
+                        out.close_popup()
+                        main()
+                    with out.popup('cookies登录',closable=False) as s:
+                        def login_auto():
+                            core.get_hack_cookies()
+                            out.close_popup()
+                            main()
                         out.put_column([
-                            None,
-                            out.put_text('请扫描二维码登录').style('line-height: 1;text-align:center'),
-                            None,
-                            out.put_image(return_data['image'],width='50%').style('margin: auto'),
-                        ],size='10px auto 10px auto'),
-                        None
-                    ],size='20px auto 20px').style('border: 1px solid #e9ecef;border-radius: .25rem;box-shadow: 5px 5px 5px #A9A9A9')
-                    check_user_info = core.get_qr_status(id=return_data['id'])#循环检查是否扫描
-                    if check_user_info == 1:#如果登录成功
-                        out.clear('login')
-                        out.remove('login')
-                        return
-                    elif check_user_info == 2:#如果二维码失效
-                        logger.warning('二维码失效,1秒后重试') # log
-                        time.sleep(1)
-                        main()
-                    elif check_user_info == 0:#如果出现未知错误
-                        logger.warning('二维码出现未知错误,1秒后重试') # log
-                        time.sleep(1)
-                        main()
+                            pin.put_textarea(name='cookies_input',placeholder='cookies值',help_text='cookies值为必填内容'),
+                            pin.put_textarea(name='accesstoken_input',placeholder='AccessToken值',rows=1,help_text='用于登录 TV、APP 接口,可选填入'),
+                            out.put_row([
+                                None,
+                                out.put_button('提交cookies',onclick=lambda:check()),
+                                None,
+                                out.put_button('自动登录',onclick=lambda:login_auto()),
+                                None
+                            ],size='1fr auto 10px auto 1fr'),
+                        ],size='auto auto auto')
+
             #创建横向标签栏
             scope_url = out.put_scope('url')#创建url域
             scope_set = out.put_scope('set')#创建set域
@@ -545,13 +587,15 @@ def main():#主函数
             time.sleep(1)
             main()
 
+if not pyuac.isUserAdmin():
+        logger.warning("当前不是管理员权限,核心错误修复无法工作")
+        logger.info("以管理员权限重启")
+        pyuac.runAsAdmin()
 logger.info('自动更新核心')
 core.update_core(system_type,system_bit)#更新核心
 core.check_ffmpeg()#检查ffmpeg可用性
 start_jiji_core = threading.Thread(target=start_core)#设置核心线程
 io.config(title='Jithon 3.0 Beta',description='本应用为唧唧2.0基于python的webui实现',theme='yeti')
-#logger.info('申请管理员权限')
-#ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)
 logger.info('主程序启动,如未自动跳转请打开http://127.0.0.1:8080')
 try:
     io.start_server(main,host='127.0.0.1',port=8080,debug=True,cdn=False,auto_open_webbrowser=True)

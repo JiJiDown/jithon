@@ -12,7 +12,7 @@ import base64
 import core
 import subprocess
 import ctypes,sys,os
-
+from pathlib import Path #路径库
 import requests
 import browser_cookie3
 
@@ -87,7 +87,19 @@ def update():
     for one in response:
         print(one.status)
         print(one.change_log)
-
-a = requests.get('https://i81.lanzoug.com:446/07191100127503958bb/2023/07/19/7c7e07c4500998f9fd0c46da3053f448.exe?st=OgT6k1XLxAdeyeKwXenw2w&e=1689739010&b=ATUNawhlB3JRYVRlUC5SM1N_bWWA_c&fi=127503958')
-with open('ffmpeg.exe','wb') as f:
-     f.write(a.content)
+        print(one.change_log)
+import pyuac
+if not pyuac.isUserAdmin():
+        print("Re-launching as admin!")
+        pyuac.runAsAdmin()
+subprocess.run('net start w32time',shell=True,text=True)
+input()
+#subprocess.run('net start w32time',shell=True,text=True)
+"""诡秘16
+诡秘15
+伊藤萝莉1-3
+百日百合1
+甘雨本
+恋人不行1-2
+辉夜22
+仙狐小姐9-10"""

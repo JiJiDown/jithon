@@ -14,6 +14,8 @@ Jithon(**鸡枞**)2.0是Jithon 1.0**重构开发**的基于**webUI**界面的唧
 6. webUI的特点使得该前端可以部署在**任何设备上**实现远程下载
 7. 已经**完全支持**唧唧2.0核心支持的各种链接解析
 8. 可以和旧UI共存互不干扰（仅需下载Jithon_2.0_Beta.exe)
+9. 支持**自动修复核心启动错误**
+10. 支持**cookies登录**或者自动通过浏览器缓存**一键登录**
 
 在经历2023/1/11的更新过后，主程序已经会**自动配置**核心以及配置文件了  
 仅需下载主程序并放到合适位置启动  
@@ -24,6 +26,7 @@ Jithon(**鸡枞**)2.0是Jithon 1.0**重构开发**的基于**webUI**界面的唧
 目前有两个平台的版本
 - Windows7-11 **AMD64**
 - Linux 2.6.23及之后版本 **ARM64**(Ubuntu系)
+- Linux 2.6.23及之后版本 **AMD64**(Ubuntu系)
 ## 软件截图
 
 [![image.png](https://i.postimg.cc/mDpyp3jL/image.png)](https://postimg.cc/jwNfL7Bm)
@@ -35,10 +38,14 @@ Jithon(**鸡枞**)2.0是Jithon 1.0**重构开发**的基于**webUI**界面的唧
 1. 安装python**3.8**或以上版本
 2. 使用pip指令安装依赖  
 ```Plain
-wget
 requests
 pywebio
 pyinstaller
+grpcio
+grpcio-tools
+tqdm
+pyuac
+loguru
 ```
 3. 创建pyinstaller spec (specification) 文件  
 ```Plain
