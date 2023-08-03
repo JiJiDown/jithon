@@ -597,6 +597,8 @@ if not isUserAdmin():
 logger.info('自动更新核心')
 core.update_core(system_type,system_bit)#更新核心
 core.check_ffmpeg()#检查ffmpeg可用性
+logger.info('生成配置文件')
+core.make_yaml()
 start_jiji_core = threading.Thread(target=start_core)#设置核心线程
 io.config(title='Jithon 3.2 Beta',description='本应用为唧唧2.0基于python的webui实现',theme='yeti')
 logger.info('主程序启动,如未自动跳转请打开http://127.0.0.1:8080')

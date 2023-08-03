@@ -452,7 +452,7 @@ download-task:
     ffmpeg-path: ""
     max-task: 2
     download-speed-limit: 1
-    disable-mcdn: false
+    disable-mcdn: true
 jdm:
     max-retry: 0
     retry-wait: 0
@@ -460,7 +460,40 @@ jdm:
     session-workers: 0
     min-split-size: 0
     proxy-addr: ""
-    check-best-mirror: false
+    check-best-mirror: true
+    cache-in-ram: false
+    cache-in-ram-limit: 0
+    insecure-skip-verify: false
+    certs-file-path: ""
+""")
+    elif Path(appdata+'/JiJiDown/config.yaml').exists():
+        with open(appdata+'/JiJiDown/config.yaml','r') as f:
+            if not 'external-controller:' in f.read():
+                with open(str(Path(appdata+'/JiJiDown/config.yaml')),'w+') as f:#写入设置文件
+                    f.write("""portable: false
+log-level: debug
+external-controller: 127.0.0.1:64000
+external-ui: ""
+secret: ""
+user-info:
+    raw-access-token: ""
+    raw-cookies: ""
+    hide-nickname: false
+download-task:
+    temp-dir: ""
+    download-dir: """+local_dir+"""
+    ffmpeg-path: ""
+    max-task: 3
+    download-speed-limit: 1
+    disable-mcdn: true
+jdm:
+    max-retry: 0
+    retry-wait: 0
+    jdm-task-workers: 0
+    session-workers: 0
+    min-split-size: 0
+    proxy-addr: ""
+    check-best-mirror: true
     cache-in-ram: false
     cache-in-ram-limit: 0
     insecure-skip-verify: false
