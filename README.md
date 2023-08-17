@@ -46,6 +46,7 @@ grpcio-tools
 tqdm
 pyuac
 loguru
+plyer
 ```
 3. 创建pyinstaller spec (specification) 文件  
 ```Plain

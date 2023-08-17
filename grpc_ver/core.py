@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import subprocess
 from pathlib import Path #路径库
@@ -6,13 +7,12 @@ import hashlib#sha256加密库
 import platform#获取系统信息
 
 from loguru import logger#日志库
-
+from plyer import notification#发送消息
 import requests
 from tqdm import tqdm
-import pywebio as io
-out = io.output
-ioin = io.input
-pin = io.pin
+from pywebio import output as out
+from pywebio import input as ioin
+from pywebio import pin
 
 import json
 import grpc
@@ -44,6 +44,7 @@ headers = {
 base_url = "localhost:64000"  # 默认端口
 local_dir = str(Path.cwd())  # 默认下载地址
 appdata = os.getenv('APPDATA')  # 获取系统变量
+os.environ["GRPC_POLL_STRATEGY"] = "epoll1"
 channel = grpc.insecure_channel(base_url)#启动grpc
 logger.info('启动grpc,地址为{}',base_url)# log
 metadata = [('client_sdk','JiJiDownPython/1.0.0')]#设置sdk
@@ -87,12 +88,28 @@ def hack_cookies():
     logger.info('尝试下载cookies提取工具')
     out.toast('尝试下载cookies提取工具',duration=2,position='center',color='info')
     if system_type == 'Windows':#如果平台为windows
-        down_url = lanzou_api('https://wwwv.lanzouw.com/ii79412wacsb','fff6')['download']
+        down_url = lanzou_api('https://wwwv.lanzouw.com/ilgZt15m3m8h','4wr8')['download']
         download(down_url,str(Path('resources/hack-browser-data.exe')))
         logger.info('工具下载完成')
         out.toast('工具下载完成',duration=2,position='center',color='info')
         return
     hack_cookies()
+
+#发送消息
+def notify(title='喵~', message='杂鱼杂鱼~', app_name='Jithon', app_icon='', timeout=10, ticker='Jithon', toast=False):
+    if Path('app.ico').exists():#如果当前目录下存在
+        app_icon=str(Path('app.ico').resolve())
+    else:
+        down_url = lanzou_api('https://wwwv.lanzouw.com/iMKrK15n2ehi','14sr')['download']
+        download(down_url,str(Path('app.ico')))
+        app_icon=str(Path('app.ico').resolve())
+    notification.notify(title,
+					message,
+                    app_name,
+                    app_icon,
+					timeout,
+                    ticker
+                    )
 
 #下载文件
 def download(url:str,out:str):
@@ -713,6 +730,7 @@ def quality(bvid:str, cid:int) -> dict:
 ################################################################## 任务管理层
 
 #创建下载任务
+@logger.catch
 def post_new_task(bvid:int,cid:int,video_quality:int,audio_quality:int,save_filename:str,video_codec:str='WEB',api_type:int=0,audio_only:bool=False) -> dict:
     """
     video_quality为1000时使用默认最高分辨率下载

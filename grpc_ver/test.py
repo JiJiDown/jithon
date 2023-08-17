@@ -1,5 +1,5 @@
 import grpc
-import json
+import re
 from grpc_core import user_pb2
 from grpc_core import user_pb2_grpc
 from grpc_core import task_pb2
@@ -9,7 +9,7 @@ from grpc_core import status_pb2_grpc
 from grpc_core import bvideo_pb2
 from grpc_core import bvideo_pb2_grpc
 import base64
-import core
+#import core
 import subprocess
 import ctypes,sys,os
 from pathlib import Path #路径库
@@ -88,13 +88,12 @@ def update():
         print(one.status)
         print(one.change_log)
         print(one.change_log)
-import pyuac
-if not pyuac.isUserAdmin():
-        print("Re-launching as admin!")
-        pyuac.runAsAdmin()
-a = os.popen('net start w32time')
-input()
-#subprocess.run('net start w32time',shell=True,text=True)
+from plyer import notification
+notification.notify(title="测试",
+					message="测试弹窗功能",
+                    app_icon='F:\\code\\jithon\\grpc_ver\\app.ico',
+					timeout=10
+                    )
 """诡秘16
 诡秘15
 伊藤萝莉1-3
