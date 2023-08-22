@@ -30,7 +30,7 @@ system_bit = platform.machine()#操作系统位数
 #启动时间
 local_time = time.strftime("%Y_%m_%d_%H_%M_%S", time.localtime())
 #设置窗口标题
-os.system('title Jithon 3.2.1 Beta Fix')
+os.system('title Jithon 3.2.2 Beta')
 
 #挂载核心
 @logger.catch
@@ -49,7 +49,7 @@ def start_core():
                 exe_path = str(Path('resources/JiJiDownCore-linux-amd64').resolve())
             elif system_bit == 'aarch64':#如果系统为arm64平台
                 exe_path = str(Path('resources/JiJiDownCore-linux-arm64').resolve())
-        log_path = str(Path('temp/log_'+log_time+'.log').resolve())
+        log_path = str(Path('log/core_'+log_time+'.log').resolve())
         #os.chdir(str(Path('resources').resolve()))
         #input(exe_path)
         with open(log_path,'w+',encoding='UTF-8') as f:
@@ -62,26 +62,26 @@ def start_core():
                 logger.warning('系统时间错误,尝试校正时间')
                 logger.info('启动w32time')
                 os.popen('net start w32time&w32tm /config /manualpeerlist:"cn.ntp.org.cn ntp.ntsc.ac.cn" /syncfromflags:manual /reliable:yes /update')
-                #logger.info('添加授时服务器')
-                #os.popen('w32tm /config /manualpeerlist:"cn.ntp.org.cn ntp.ntsc.ac.cn" /syncfromflags:manual /reliable:yes /update')
-            if 'An attempt was made to access a socket in a way forbidden by its access permissions.' in return_data:
+                logger.info('添加授时服务器')
+                os.popen('w32tm /config /manualpeerlist:"cn.ntp.org.cn ntp.ntsc.ac.cn" /syncfromflags:manual /reliable:yes /update')
+            elif 'An attempt was made to access a socket in a way forbidden by its access permissions.' in return_data:
                 logger.warning('系统抽风,端口被占用,尝试关闭ICS服务(共享网络或虚拟网卡会导致此错误)')
                 os.popen('net stop SharedAccess')
-            if 'External controller gRPC listen error' in return_data:
+            elif 'External controller gRPC listen error' in return_data:
                 logger.warning('核心gRPC端口被占用(localhost:64000)')
                 error = 1
-            if 'External controller listen error' in return_data:
+            elif 'External controller listen error' in return_data:
                 logger.warning('核心RESTful端口被占用(localhost:64001)')
                 error = 1
-            if error == 1:#端口被占用
+            elif error == 1:#端口被占用
                 logger.info('尝试修复端口占用问题')
                 if system_type == 'Windows':#如果平台为windows
                     os.popen('taskkill /f /t /im "JiJiDownCore-win64.exe"')#关闭核心
                 logger.info('修复完成,尝试重启核心')
-            time.sleep(5)
             continue
 
 #检查下载路径
+@logger.catch
 def check_dir():
     """
     检查下载路径
@@ -95,6 +95,7 @@ def check_dir():
     return
 
 #校验输入是否正确
+@logger.catch
 def check_input_url(url):
     #判断输入url类型
     if "BV" in url:
@@ -130,10 +131,12 @@ def check_input_url(url):
     return '链接无效'
 
 #校验cookies是否正确
+@logger.catch
 def check_cookies(cookies:str):
     pass
 
 #检查任务状态类型
+@logger.catch
 def get_task_status(data:int) -> str:
     """
     从代码查找对应的任务状态
@@ -154,6 +157,7 @@ def get_task_status(data:int) -> str:
         return '完成'
 
 #获取被勾选视频数据
+@logger.catch
 def get_video_list_info(num:int) -> list:
     """
     获取被勾选的视频数据
@@ -165,6 +169,7 @@ def get_video_list_info(num:int) -> list:
     return info_list
 
 #获取选择的清晰度
+@logger.catch
 def get_choice_quality() -> dict:
     """
     获取选择的视频清晰度
@@ -176,6 +181,7 @@ def get_choice_quality() -> dict:
     return return_dict
 
 #创建清晰度列表
+@logger.catch
 def get_video_quality_list(data:dict) -> list:
     """
     返回[视频清晰度,音频清晰度]
@@ -204,6 +210,7 @@ def get_video_quality_list(data:dict) -> list:
     return [out_video_list,out_audio_list]
 
 #处理下载文件名
+@logger.catch
 def make_down_name(info_date:dict,video_data:dict) -> str:
     """
     下载文件名处理
@@ -213,6 +220,7 @@ def make_down_name(info_date:dict,video_data:dict) -> str:
     return info_date['title']
 
 #显示视频下载选择界面
+@logger.catch
 def print_video_info(info) -> list:
     """
     创建视频下载界面
@@ -375,6 +383,7 @@ def watch_status(task_id:str,name:str):
         #watch_status(task_id=task_id,name=name)#试图重试
 
 #解析输入的url
+@logger.catch
 def start_url():
     url = pin.pin['url_input']#获取输入
     check_return = check_input_url(url)
@@ -465,7 +474,7 @@ def main():#主函数
                 if user_info['code'] != -1:#服务器启动失败
                     break
                 logger.debug('核心启动失败,重试')
-                time.sleep(1)
+                time.sleep(3)
                 if not start_jiji_core.is_alive():
                     io.session.register_thread(start_jiji_core)
                     logger.info('启动核心')
@@ -599,8 +608,8 @@ def main():#主函数
 if not isUserAdmin():
         logger.warning("当前不是管理员权限,核心错误修复无法工作")
         logger.info("以管理员权限重启")
-        #runAsAdmin()
-        #sys.exit()
+        runAsAdmin()
+        sys.exit()
 elif isUserAdmin():
     logger.info("当前是管理员权限")
 logger.info('自动更新核心')
@@ -609,7 +618,7 @@ core.check_ffmpeg()#检查ffmpeg可用性
 logger.info('生成配置文件')
 core.make_yaml()
 start_jiji_core = threading.Thread(target=start_core)#设置核心线程
-io.config(title='Jithon 3.2.1 Beta Fix',description='本应用为唧唧2.0基于python的webui实现',theme='yeti')
+io.config(title='Jithon 3.2.2 Beta',description='本应用为唧唧2.0基于python的webui实现',theme='yeti')
 logger.info('主程序启动,如未自动跳转请打开http://127.0.0.1:8080')
 core.notify(title='启动完成~',message='主程序启动,如未自动跳转请打开http://127.0.0.1:8080')
 try:

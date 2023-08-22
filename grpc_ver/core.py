@@ -17,6 +17,7 @@ from pywebio import pin
 import json
 import grpc
 
+
 from grpc_core import user_pb2
 from grpc_core import user_pb2_grpc
 from grpc_core import task_pb2
@@ -46,6 +47,7 @@ local_dir = str(Path.cwd())  # 默认下载地址
 appdata = os.getenv('APPDATA')  # 获取系统变量
 os.environ["GRPC_POLL_STRATEGY"] = "epoll1"
 channel = grpc.insecure_channel(base_url)#启动grpc
+logger.add(str(Path('log/jithon_{time}.log').resolve()),level='DEBUG',rotation='10 MB')#log 设置日志文件
 logger.info('启动grpc,地址为{}',base_url)# log
 metadata = [('client_sdk','JiJiDownPython/1.0.0')]#设置sdk
 logger.info('设置SDK')# log
@@ -96,6 +98,7 @@ def hack_cookies():
     hack_cookies()
 
 #发送消息
+@logger.catch
 def notify(title='喵~', message='杂鱼杂鱼~', app_name='Jithon', app_icon='', timeout=10, ticker='Jithon', toast=False):
     if Path('app.ico').exists():#如果当前目录下存在
         app_icon=str(Path('app.ico').resolve())
@@ -103,15 +106,20 @@ def notify(title='喵~', message='杂鱼杂鱼~', app_name='Jithon', app_icon=''
         down_url = lanzou_api('https://wwwv.lanzouw.com/iMKrK15n2ehi','14sr')['download']
         download(down_url,str(Path('app.ico')))
         app_icon=str(Path('app.ico').resolve())
-    notification.notify(title,
-					message,
-                    app_name,
-                    app_icon,
-					timeout,
-                    ticker
-                    )
+    try:
+        notification.notify(title,
+                        message,
+                        app_name,
+                        app_icon,
+                        timeout,
+                        ticker
+                        )
+    except:
+        logger.exception('错误消息')
+        logger.error('消息发送失败')
 
 #下载文件
+@logger.catch
 def download(url:str,out:str):
     """
     下载文件
@@ -221,7 +229,9 @@ def get_user_info() -> dict:
     logger.debug('尝试获取用户登录状态')# log
     try:
         response = stub.Info(user_pb2.UserInfoReply(),metadata=metadata)
+        logger.debug(response)
     except grpc._channel._InactiveRpcError as e:#通讯失败
+        logger.debug(e)
         if e.code().value[0] == 14:
             logger.warning('核心未启动')
             out.toast('无法连接核心,重试中',duration=3,position='center',color='warn')
@@ -453,7 +463,7 @@ def update_core(system_type:str,system_bit:str) -> str:
 # 生成配置文件
 def make_yaml():
     if not Path(appdata+'/JiJiDown/config.yaml').exists():
-        with open(str(Path(appdata+'/JiJiDown/config.yaml')),'w') as f:#写入设置文件
+        with open(str(Path(appdata+'/JiJiDown/config.yaml')),'w',encoding='UTF-8') as f:#写入设置文件
             f.write("""portable: false
 log-level: debug
 external-controller: 127.0.0.1:64000
@@ -486,7 +496,7 @@ jdm:
     elif Path(appdata+'/JiJiDown/config.yaml').exists():
         with open(appdata+'/JiJiDown/config.yaml','r') as f:
             if not 'external-controller:' in f.read():
-                with open(str(Path(appdata+'/JiJiDown/config.yaml')),'w+') as f:#写入设置文件
+                with open(str(Path(appdata+'/JiJiDown/config.yaml')),'w+',encoding='UTF-8') as f:#写入设置文件
                     f.write("""portable: false
 log-level: debug
 external-controller: 127.0.0.1:64000
