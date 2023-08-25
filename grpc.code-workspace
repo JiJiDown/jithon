@@ -1,0 +1,28 @@
+{
+	"folders": [
+		{
+			"path": "../../论坛"
+		},
+		{
+			"path": ".."
+		},
+		{
+			"path": "../../Jitwin2.0"
+		},
+		{
+			"name": "Lofter-Saver",
+			"path": "../../Lofter-Saver"
+		},
+		{
+			"path": "../../bw"
+		},
+		{
+			"path": "../../auto"
+		},
+		{
+			"name": "grpc",
+			"path": "../../grpc"
+		}
+	],
+	"settings": {}
+}
