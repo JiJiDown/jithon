@@ -30,7 +30,8 @@ system_bit = platform.machine()#操作系统位数
 #启动时间
 local_time = time.strftime("%Y_%m_%d_%H_%M_%S", time.localtime())
 #设置窗口标题
-os.system('title Jithon 3.2.2 Beta')
+if system_type == 'Windows':
+    os.system('title Jithon 3.2.2 Beta')
 
 #挂载核心
 @logger.catch
@@ -45,7 +46,7 @@ def start_core():
         if system_type == 'Windows':#如果平台为windows
             exe_path = str(Path('resources/JiJiDownCore-win64.exe').resolve())
         elif system_type == 'Linux':
-            if system_bit == 'AMD64':#如果系统为x86平台
+            if system_bit == 'AMD64' or system_bit == 'x86_64':#如果系统为x86平台
                 exe_path = str(Path('resources/JiJiDownCore-linux-amd64').resolve())
             elif system_bit == 'aarch64':#如果系统为arm64平台
                 exe_path = str(Path('resources/JiJiDownCore-linux-arm64').resolve())
@@ -78,6 +79,7 @@ def start_core():
                 if system_type == 'Windows':#如果平台为windows
                     os.popen('taskkill /f /t /im "JiJiDownCore-win64.exe"')#关闭核心
                 logger.info('修复完成,尝试重启核心')
+            time.sleep(3)
             continue
 
 #检查下载路径
@@ -607,9 +609,12 @@ def main():#主函数
 
 if not isUserAdmin():
         logger.warning("当前不是管理员权限,核心错误修复无法工作")
-        logger.info("以管理员权限重启")
-        runAsAdmin()
-        sys.exit()
+        if system_type == 'Windows':
+            logger.info("以管理员权限重启")
+            #runAsAdmin()
+            #sys.exit()
+        elif system_type == 'Linux':
+            logger.info("请以管理员权限启动软件")
 elif isUserAdmin():
     logger.info("当前是管理员权限")
 logger.info('自动更新核心')
@@ -622,7 +627,7 @@ io.config(title='Jithon 3.2.2 Beta',description='本应用为唧唧2.0基于pyth
 logger.info('主程序启动,如未自动跳转请打开http://127.0.0.1:8080')
 core.notify(title='启动完成~',message='主程序启动,如未自动跳转请打开http://127.0.0.1:8080')
 try:
-    io.start_server(main,host='127.0.0.1',port=8080,debug=True,cdn=False,auto_open_webbrowser=True)
+    io.start_server(main,host='0.0.0.0',port=8090,debug=True,cdn=False,auto_open_webbrowser=True)
 except KeyboardInterrupt:#程序被手动关闭
     logger.info('程序已终止')
     exit()

@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package jijidown.core;
+
+option go_package = "github.com/JiJiDown/JiJiDownCore-go/common/jijidown/types/taskstatuspb";
+option csharp_namespace = "JiJiDown.Core.SDK.Types";
+
+// 任务状态
+enum TaskStatusType {
+  TaskStatusType_TASK_ALL = 0;       // 所有任务
+  TaskStatusType_TASK_ERROR = 1;     // 任务错误
+  TaskStatusType_TASK_STOP = 2;      // 任务停止
+  TaskStatusType_TASK_WAIT = 3;      // 任务等待
+  TaskStatusType_TASK_RUNNING = 4;   // 任务运行
+  TaskStatusType_TASK_COMPLETE = 5;  // 任务完成
+}

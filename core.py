@@ -35,7 +35,10 @@ system_bit = platform.machine()#操作系统位数
 if system_type == 'Windows':#如果平台为windows
     local_core = str(Path('resources/JiJiDownCore-win64.exe').resolve())
 elif system_type == 'Linux':
-    local_core = str(Path('resources/JiJiDownCore-linux-amd64').resolve())
+    if system_bit == 'AMD64' or system_bit == 'x86_64':
+        local_core = str(Path('resources/JiJiDownCore-linux-amd64').resolve())
+    elif system_bit == 'aarch64':
+        local_core = str(Path('resources/JiJiDownCore-linux-arm64').resolve())
 local_time = time.strftime("%y/%m/%d", time.localtime())
 brower = requests.Session()
 headers = {
@@ -45,6 +48,8 @@ headers = {
 base_url = "localhost:64000"  # 默认端口
 local_dir = str(Path.cwd())  # 默认下载地址
 appdata = os.getenv('APPDATA')  # 获取系统变量
+if system_type == 'Linux':
+    appdata = str(Path(os.getenv('HOME')+'/.config').resolve())
 os.environ["GRPC_POLL_STRATEGY"] = "epoll1"
 channel = grpc.insecure_channel(base_url)#启动grpc
 logger.add(str(Path('log/jithon_{time}.log').resolve()),level='DEBUG',rotation='10 MB')#log 设置日志文件
@@ -55,6 +60,10 @@ Path(local_dir+'/resources').mkdir(parents=True,exist_ok=True)  # 创建核心�
 Path(local_dir+'/temp').mkdir(parents=True,exist_ok=True)# 创建临时文件夹
 Path(appdata+'/JiJiDown').mkdir(parents=True,exist_ok=True)# 创建jijidown配置文件夹
 logger.info('设置路径')
+logger.debug('核心路径 '+local_dir+'/resources')
+logger.debug('设置路径 '+appdata)
+logger.debug('系统名称 '+system_type)
+logger.debug('系统位数 '+system_bit)
 
 #检查ffmpeg可用性
 def check_ffmpeg():
@@ -69,7 +78,7 @@ def check_ffmpeg():
         down_url = lanzou_api('https://wwwv.lanzouw.com/iluwh12vtnli','9zp2')['download']
         download(down_url,str(Path('resources/ffmpeg.exe')))
     elif system_type == 'Linux':
-        if system_bit == 'AMD64':#如果系统为x86平台
+        if system_bit == 'AMD64' or system_bit == 'x86_64':#如果系统为x86平台
             down_url = lanzou_api('https://wwwv.lanzouw.com/ilt8M133q15a','h9fo')['download']
             download(down_url,str(Path('resources/ffmpeg')))
         elif system_bit == 'aarch64':
@@ -432,16 +441,6 @@ def update_core(system_type:str,system_bit:str) -> str:
     """
     global local_core#使用全局变量
 
-    local_core_list = find_core()#获取本地文件夹列表
-    b = []
-    for a in local_core_list:#查询本地核心是否存在
-        if 'JiJiDownCore-' in a :
-            b.append(a)
-    if len(b) > 1:#如果存在多于一个的核心
-        for a in b:#全部删除
-            Path.unlink(Path('resources/'+a))
-    elif len(b) == 1:#如果只有一个，设置本地核心路径为那一个
-        local_core = Path('resources/'+b[0])
     if Path(local_core).exists():#如果只有一个
         with open(local_core,'rb') as f:#获取本地核心sha265
             sha265 = hashlib.sha256(f.read()).hexdigest()
@@ -466,7 +465,7 @@ def make_yaml():
         with open(str(Path(appdata+'/JiJiDown/config.yaml')),'w',encoding='UTF-8') as f:#写入设置文件
             f.write("""portable: false
 log-level: debug
-external-controller: 127.0.0.1:64000
+external-controller: 0.0.0.0:64000
 external-ui: ""
 secret: ""
 user-info:
@@ -499,7 +498,7 @@ jdm:
                 with open(str(Path(appdata+'/JiJiDown/config.yaml')),'w+',encoding='UTF-8') as f:#写入设置文件
                     f.write("""portable: false
 log-level: debug
-external-controller: 127.0.0.1:64000
+external-controller: 0.0.0.0:64000
 external-ui: ""
 secret: ""
 user-info:

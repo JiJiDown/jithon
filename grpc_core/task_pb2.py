@@ -12,13 +12,13 @@ _sym_db = _symbol_database.Default()
 
 
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
-from grpc_core.type import api_pb2 as type_dot_api__pb2
-from grpc_core.type import video_pb2 as type_dot_video__pb2
-from grpc_core.type import taskstatus_pb2 as type_dot_taskstatus__pb2
-from grpc_core.type import taskdo_pb2 as type_dot_taskdo__pb2
+from type import api_pb2 as type_dot_api__pb2
+from type import video_pb2 as type_dot_video__pb2
+from type import taskstatus_pb2 as type_dot_taskstatus__pb2
+from type import taskdo_pb2 as type_dot_taskdo__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\ntask.proto\x12\rjijidown.core\x1a\x1bgoogle/protobuf/empty.proto\x1a\x0etype/api.proto\x1a\x10type/video.proto\x1a\x15type/taskstatus.proto\x1a\x11type/taskdo.proto\"\xe6\x01\n\nTaskNewReq\x12\x0b\n\x03\x61id\x18\x01 \x01(\x03\x12\x0c\n\x04\x62vid\x18\x02 \x01(\t\x12\x0b\n\x03\x63id\x18\x03 \x01(\x03\x12\x15\n\rvideo_quality\x18\x04 \x01(\r\x12\x15\n\raudio_quality\x18\x05 \x01(\r\x12-\n\x0bvideo_codec\x18\x06 \x01(\x0e\x32\x18.jijidown.core.VideoType\x12(\n\x08\x61pi_type\x18\x07 \x01(\x0e\x32\x16.jijidown.core.ApiType\x12\x15\n\rsave_filename\x18\x08 \x01(\t\x12\x12\n\naudio_only\x18\t \x01(\x08\"M\n\x0cTaskNewReply\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\x15\n\rquality_video\x18\x02 \x01(\r\x12\x15\n\rquality_audio\x18\x03 \x01(\r\" \n\rTaskStatusReq\x12\x0f\n\x07task_id\x18\x01 \x01(\t\"|\n\x0fTaskStatusReply\x12\x32\n\x0btask_status\x18\x01 \x01(\x0e\x32\x1d.jijidown.core.TaskStatusType\x12\x0c\n\x04text\x18\x02 \x01(\t\x12\x10\n\x08progress\x18\x03 \x01(\r\x12\x15\n\raverage_speed\x18\x04 \x01(\t\"D\n\x0eTaskControlReq\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12!\n\x02\x64o\x18\x02 \x01(\x0e\x32\x15.jijidown.core.TaskDo2\xd1\x01\n\x04Task\x12=\n\x03New\x12\x19.jijidown.core.TaskNewReq\x1a\x1b.jijidown.core.TaskNewReply\x12H\n\x06Status\x12\x1c.jijidown.core.TaskStatusReq\x1a\x1e.jijidown.core.TaskStatusReply0\x01\x12@\n\x07\x43ontrol\x12\x1d.jijidown.core.TaskControlReq\x1a\x16.google.protobuf.EmptyBIZ3github.com/JiJiDown/JiJiDownCore-go/common/jijidown\xaa\x02\x11JiJiDown.Core.SDKb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\ntask.proto\x12\rjijidown.core\x1a\x1bgoogle/protobuf/empty.proto\x1a\x0etype/api.proto\x1a\x10type/video.proto\x1a\x15type/taskstatus.proto\x1a\x11type/taskdo.proto\"\xf8\x01\n\nTaskNewReq\x12\x0b\n\x03\x61id\x18\x01 \x01(\x03\x12\x0c\n\x04\x62vid\x18\x02 \x01(\t\x12\x0b\n\x03\x63id\x18\x03 \x01(\x03\x12\x15\n\rvideo_quality\x18\x04 \x01(\r\x12\x15\n\raudio_quality\x18\x05 \x01(\r\x12-\n\x0bvideo_codec\x18\x06 \x01(\x0e\x32\x18.jijidown.core.VideoType\x12(\n\x08\x61pi_type\x18\x07 \x01(\x0e\x32\x16.jijidown.core.ApiType\x12\x15\n\rsave_filename\x18\x08 \x01(\t\x12\x12\n\naudio_only\x18\t \x01(\x08\x12\x10\n\x08\x63\x61llback\x18\n \x01(\x04\"3\n\x12TaskCreationStatus\x12\x10\n\x08\x63\x61llback\x18\x01 \x01(\x04\x12\x0b\n\x03\x65rr\x18\x02 \x01(\t\"T\n\x11TaskNewBatchReply\x12?\n\x14task_creation_status\x18\x01 \x03(\x0b\x32!.jijidown.core.TaskCreationStatus\"?\n\x0fTaskNewBatchReq\x12,\n\tnew_tasks\x18\x01 \x03(\x0b\x32\x19.jijidown.core.TaskNewReq\" \n\rTaskStatusReq\x12\x0f\n\x07task_id\x18\x01 \x01(\t\"\x8a\x01\n\x0cTaskProgress\x12\x14\n\x0ctotal_length\x18\x01 \x01(\t\x12\x18\n\x10\x63ompleted_length\x18\x02 \x01(\t\x12\x13\n\x0bleft_length\x18\x03 \x01(\t\x12\x16\n\x0e\x64ownload_speed\x18\x04 \x01(\t\x12\x0b\n\x03\x65ta\x18\x05 \x01(\t\x12\x10\n\x08progress\x18\x06 \x01(\r\"\xd2\x02\n\x0fTaskStatusReply\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\x12\n\ntask_title\x18\x02 \x01(\t\x12\x13\n\x0bvideo_badge\x18\x03 \x01(\t\x12\x13\n\x0b\x61udio_badge\x18\x04 \x01(\t\x12\x13\n\x0bvideo_codec\x18\x05 \x01(\t\x12(\n\x08\x61pi_type\x18\x06 \x01(\x0e\x32\x16.jijidown.core.ApiType\x12\x12\n\naudio_only\x18\x07 \x01(\x08\x12\x32\n\x0btask_status\x18\x08 \x01(\x0e\x32\x1d.jijidown.core.TaskStatusType\x12\x10\n\x08\x61\x64\x64_time\x18\t \x01(\x03\x12\x15\n\rcomplete_time\x18\n \x01(\x03\x12-\n\x08progress\x18\x0b \x01(\x0b\x32\x1b.jijidown.core.TaskProgress\x12\x11\n\tsave_path\x18\x0c \x01(\t\"A\n\x0bTaskListReq\x12\x32\n\x0btask_status\x18\x01 \x01(\x0e\x32\x1d.jijidown.core.TaskStatusType\">\n\rTaskListReply\x12-\n\x05tasks\x18\x01 \x03(\x0b\x32\x1e.jijidown.core.TaskStatusReply\"D\n\x0eTaskControlReq\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12!\n\x02\x64o\x18\x02 \x01(\x0e\x32\x15.jijidown.core.TaskDo\"i\n\x15TaskNotificationReply\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\x12\n\ntask_title\x18\x02 \x01(\t\x12\x15\n\raverage_speed\x18\x03 \x01(\t\x12\x14\n\x0c\x65lapsed_time\x18\x04 \x01(\t2\xaa\x03\n\x04Task\x12\x38\n\x03New\x12\x19.jijidown.core.TaskNewReq\x1a\x16.google.protobuf.Empty\x12L\n\x08NewBatch\x12\x1e.jijidown.core.TaskNewBatchReq\x1a .jijidown.core.TaskNewBatchReply\x12\x46\n\x06Status\x12\x1c.jijidown.core.TaskStatusReq\x1a\x1e.jijidown.core.TaskStatusReply\x12@\n\x04List\x12\x1a.jijidown.core.TaskListReq\x1a\x1c.jijidown.core.TaskListReply\x12@\n\x07\x43ontrol\x12\x1d.jijidown.core.TaskControlReq\x1a\x16.google.protobuf.Empty\x12N\n\x0cNotification\x12\x16.google.protobuf.Empty\x1a$.jijidown.core.TaskNotificationReply0\x01\x42IZ3github.com/JiJiDown/JiJiDownCore-go/common/jijidown\xaa\x02\x11JiJiDown.Core.SDKb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -28,15 +28,27 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   DESCRIPTOR._options = None
   DESCRIPTOR._serialized_options = b'Z3github.com/JiJiDown/JiJiDownCore-go/common/jijidown\252\002\021JiJiDown.Core.SDK'
   _globals['_TASKNEWREQ']._serialized_start=135
-  _globals['_TASKNEWREQ']._serialized_end=365
-  _globals['_TASKNEWREPLY']._serialized_start=367
-  _globals['_TASKNEWREPLY']._serialized_end=444
-  _globals['_TASKSTATUSREQ']._serialized_start=446
-  _globals['_TASKSTATUSREQ']._serialized_end=478
-  _globals['_TASKSTATUSREPLY']._serialized_start=480
-  _globals['_TASKSTATUSREPLY']._serialized_end=604
-  _globals['_TASKCONTROLREQ']._serialized_start=606
-  _globals['_TASKCONTROLREQ']._serialized_end=674
-  _globals['_TASK']._serialized_start=677
-  _globals['_TASK']._serialized_end=886
+  _globals['_TASKNEWREQ']._serialized_end=383
+  _globals['_TASKCREATIONSTATUS']._serialized_start=385
+  _globals['_TASKCREATIONSTATUS']._serialized_end=436
+  _globals['_TASKNEWBATCHREPLY']._serialized_start=438
+  _globals['_TASKNEWBATCHREPLY']._serialized_end=522
+  _globals['_TASKNEWBATCHREQ']._serialized_start=524
+  _globals['_TASKNEWBATCHREQ']._serialized_end=587
+  _globals['_TASKSTATUSREQ']._serialized_start=589
+  _globals['_TASKSTATUSREQ']._serialized_end=621
+  _globals['_TASKPROGRESS']._serialized_start=624
+  _globals['_TASKPROGRESS']._serialized_end=762
+  _globals['_TASKSTATUSREPLY']._serialized_start=765
+  _globals['_TASKSTATUSREPLY']._serialized_end=1103
+  _globals['_TASKLISTREQ']._serialized_start=1105
+  _globals['_TASKLISTREQ']._serialized_end=1170
+  _globals['_TASKLISTREPLY']._serialized_start=1172
+  _globals['_TASKLISTREPLY']._serialized_end=1234
+  _globals['_TASKCONTROLREQ']._serialized_start=1236
+  _globals['_TASKCONTROLREQ']._serialized_end=1304
+  _globals['_TASKNOTIFICATIONREPLY']._serialized_start=1306
+  _globals['_TASKNOTIFICATIONREPLY']._serialized_end=1411
+  _globals['_TASK']._serialized_start=1414
+  _globals['_TASK']._serialized_end=1840
 # @@protoc_insertion_point(module_scope)

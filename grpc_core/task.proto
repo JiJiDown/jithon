@@ -14,11 +14,17 @@ import "type/taskdo.proto";
 // Task
 service Task {
   // 创建新任务
-  rpc New(TaskNewReq) returns (TaskNewReply);
+  rpc New(TaskNewReq) returns (google.protobuf.Empty);
+  // 批量创建新任务
+  rpc NewBatch(TaskNewBatchReq) returns (TaskNewBatchReply);
   // 任务状态
-  rpc Status(TaskStatusReq) returns (stream TaskStatusReply);
+  rpc Status(TaskStatusReq) returns (TaskStatusReply);
+  // 获取任务列表
+  rpc List(TaskListReq) returns (TaskListReply);
   // 任务控制 (暂停, 继续, 删除)
   rpc Control(TaskControlReq) returns (google.protobuf.Empty);
+  // 任务完成通知
+  rpc Notification(google.protobuf.Empty) returns (stream TaskNotificationReply);
 }
 
 // 创建新任务-请求
@@ -41,16 +47,28 @@ message TaskNewReq {
   string save_filename = 8;
   // 仅下载音频
   bool audio_only = 9;
+  // 批量下载回调
+  uint64 callback = 10;
 }
 
-// 创建新任务-回复
-message TaskNewReply {
-  // 任务 id
-  string task_id = 1;
-  // 视频清晰度
-  uint32 quality_video = 2;
-  // 音频清晰度
-  uint32 quality_audio = 3;
+// 任务创建状态
+message TaskCreationStatus {
+  // 批量下载回调
+  uint64 callback = 1;
+  // 错误详细信息
+  string err = 2;
+}
+
+// 批量创建新任务-回复
+message TaskNewBatchReply {
+  // 批量下载 任务创建状态
+  repeated TaskCreationStatus task_creation_status = 1;
+}
+
+// 批量创建新任务-请求
+message TaskNewBatchReq {
+  // 批量下载任务组
+  repeated TaskNewReq new_tasks = 1;
 }
 
 // 任务状态-请求
@@ -59,16 +77,60 @@ message TaskStatusReq {
   string task_id = 1;
 }
 
+// 任务进度
+message TaskProgress {
+  // 总长度
+  string total_length = 1;
+  // 完成长度
+  string completed_length = 2;
+  // 剩余长度
+  string left_length = 3;
+  // 下载速度 每秒
+  string download_speed = 4;
+  // 下载完成预计时间
+  string eta = 5;
+  // 下载进度 1 - 100
+  uint32 progress = 6;
+}
+
 // 任务状态-回复
 message TaskStatusReply {
+  // 任务 id
+  string task_id = 1;
+  // 任务标题名称
+  string task_title = 2;
+  // 视频清晰度角标
+  string video_badge = 3;
+  // 音频质量角标
+  string audio_badge = 4;
+  // 视频编码格式
+  string video_codec = 5;
+  // 下载使用的 API (WEB / TV / APP)
+  ApiType api_type = 6;
+  // 仅下载音频
+  bool audio_only = 7;
   // 任务状态
+  TaskStatusType task_status = 8;
+  // 任务添加时间
+  int64 add_time = 9;
+  // 任务完成时间
+  int64 complete_time = 10;
+  // 任务进度
+  TaskProgress progress = 11;
+  // 下载文件保存路径
+  string save_path = 12;
+}
+
+// 获取任务列表-请求
+message TaskListReq {
+  // 任务列表状态
   TaskStatusType task_status = 1;
-  // 下载进度提示文本
-  string text = 2;
-  // 下载进度
-  uint32 progress = 3;
-  // 平均下载速度
-  string average_speed = 4;
+}
+
+// 获取任务列表-回复
+message TaskListReply {
+  // 任务列表状态
+  repeated TaskStatusReply tasks = 1;
 }
 
 // 任务控制 (暂停, 继续, 删除)-请求
@@ -77,4 +139,16 @@ message TaskControlReq {
   string task_id = 1;
   // 操作
   TaskDo do = 2;
+}
+
+// 任务完成通知-回复
+message TaskNotificationReply {
+  // 任务 id
+  string task_id = 1;
+  // 任务标题名称
+  string task_title = 2;
+  // 平均下载速度
+  string average_speed = 3;
+  // 下载用时
+  string elapsed_time = 4;
 }
